@@ -264,29 +264,214 @@
                     <div>
                         <span class="page-label">NEW COMPLAINT</span>
                         <h1>Submit a Complaint</h1>
-                        <p>Tell us about the issue you want to report.</p>
+                        <p>Report a public issue with the details needed for faster action.</p>
                     </div>
                 </div>
 
-                <div class="panel placeholder-panel">
+                <form id="complaintForm" class="complaint-form">
 
-                    <div class="large-icon">📝</div>
+                    <div class="form-panel">
+                        <div class="form-panel-header">
+                            <div class="form-step">01</div>
+                            <div>
+                                <h2>Personal Details</h2>
+                                <p>Your registered information</p>
+                            </div>
+                        </div>
 
-                    <h2>Complaint Registration</h2>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="complaintFirstName">First Name</label>
+                                <input type="text" id="complaintFirstName" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="complaintLastName">Last Name</label>
+                                <input type="text" id="complaintLastName" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="complaintEmail">Email</label>
+                                <input type="email" id="complaintEmail" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="complaintPhone">Phone Number</label>
+                                <input type="tel" id="complaintPhone" readonly>
+                            </div>
+                        </div>
+                    </div>
 
-                    <p>
-                        The complaint form will allow you to provide
-                        category, location, description and evidence.
-                    </p>
+                    <div class="form-panel">
+                        <div class="form-panel-header">
+                            <div class="form-step">02</div>
+                            <div>
+                                <h2>Complaint Details</h2>
+                                <p>Describe the public issue clearly</p>
+                            </div>
+                        </div>
 
-                    <button class="primary-btn">
-                        Start Complaint
-                    </button>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="complaintCategory">Complaint Category <span>*</span></label>
+                                <select id="complaintCategory" required>
+                                    <option value="">Select category</option>
+                                    <option value="Road & Infrastructure">Road & Infrastructure</option>
+                                    <option value="Water & Sanitation">Water & Sanitation</option>
+                                    <option value="Electricity">Electricity</option>
+                                    <option value="Public Safety">Public Safety</option>
+                                    <option value="Healthcare">Healthcare</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
 
+                            <div class="form-group">
+                                <label for="complaintSubCategory">Sub-category <span>*</span></label>
+                                <select id="complaintSubCategory" required disabled>
+                                    <option value="">Select category first</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group form-full">
+                                <label for="complaintTitle">Subject <span>*</span></label>
+                                <input type="text" id="complaintTitle" maxlength="120" placeholder="Example: Large pothole near main road" required>
+                            </div>
+
+                            <div class="form-group form-full">
+                                <label for="complaintDescription">Detailed Description <span>*</span></label>
+                                <textarea id="complaintDescription" rows="6" maxlength="1500" placeholder="Explain what happened, where it happened and any other useful details..." required></textarea>
+                                <small class="char-count"><span id="descriptionCount">0</span>/1500</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-panel">
+                        <div class="form-panel-header">
+                            <div class="form-step">03</div>
+                            <div>
+                                <h2>Location Details</h2>
+                                <p>Tell us exactly where the issue is located</p>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="complaintState">State <span>*</span></label>
+                                <input type="text" id="complaintState" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="complaintDistrict">District <span>*</span></label>
+                                <input type="text" id="complaintDistrict" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="complaintArea">Village / City <span>*</span></label>
+                                <input type="text" id="complaintArea" placeholder="Village, town or city" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="complaintTown">Nearest Town</label>
+                                <input type="text" id="complaintTown" placeholder="Nearest town">
+                            </div>
+                            <div class="form-group">
+                                <label for="complaintPincode">Pincode</label>
+                                <input type="text" id="complaintPincode" maxlength="6" inputmode="numeric" placeholder="6-digit pincode">
+                            </div>
+                            <div class="form-group">
+                                <label for="complaintStreet">Street / Area</label>
+                                <input type="text" id="complaintStreet" placeholder="Street, landmark or area">
+                            </div>
+
+                            <div class="location-box form-full">
+                                <div>
+                                    <strong>Exact Location</strong>
+                                    <p id="locationStatus">GPS location is optional. You can enter the address manually.</p>
+                                    <div class="coordinates">
+                                        <span>Latitude: <b id="latitudeValue">Not set</b></span>
+                                        <span>Longitude: <b id="longitudeValue">Not set</b></span>
+                                    </div>
+                                </div>
+                                <button type="button" class="secondary-btn" id="useLocationBtn">📍 Use My Current Location</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-panel">
+                        <div class="form-panel-header">
+                            <div class="form-step">04</div>
+                            <div>
+                                <h2>Priority & Evidence</h2>
+                                <p>Help the department understand the urgency</p>
+                            </div>
+                        </div>
+
+                        <div class="priority-options">
+                            <label class="priority-card">
+                                <input type="radio" name="priority" value="Normal" checked>
+                                <span>
+                                    <strong>Normal</strong>
+                                    <small>General public issue</small>
+                                </span>
+                            </label>
+                            <label class="priority-card important">
+                                <input type="radio" name="priority" value="Important">
+                                <span>
+                                    <strong>Important</strong>
+                                    <small>Needs timely attention</small>
+                                </span>
+                            </label>
+                            <label class="priority-card urgent">
+                                <input type="radio" name="priority" value="Urgent">
+                                <span>
+                                    <strong>Urgent</strong>
+                                    <small>Immediate attention required</small>
+                                </span>
+                            </label>
+                        </div>
+
+                        <div class="evidence-upload">
+                            <label for="complaintPhotos" class="upload-box">
+                                <div class="upload-icon">📷</div>
+                                <strong>Add Photo Evidence</strong>
+                                <p>JPG, PNG or WEBP · Multiple photos allowed</p>
+                                <span>Choose Photos</span>
+                            </label>
+                            <input type="file" id="complaintPhotos" accept="image/jpeg,image/png,image/webp" multiple hidden>
+                            <div id="photoPreview" class="photo-preview"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-panel verification-panel">
+                        <label class="verify-check">
+                            <input type="checkbox" id="complaintVerification" required>
+                            <span></span>
+                            <div>
+                                <strong>I confirm that the information provided is accurate.</strong>
+                                <p>False or misleading complaints may be subject to verification.</p>
+                            </div>
+                        </label>
+
+                        <div id="complaintFormMessage" class="form-message"></div>
+
+                        <div class="form-actions">
+                            <button type="button" class="secondary-btn" id="clearComplaintBtn">Clear Form</button>
+                            <button type="submit" class="primary-btn" id="submitComplaintBtn">Submit Complaint</button>
+                        </div>
+                    </div>
+
+                </form>
+
+                <div id="complaintSuccess" class="complaint-success">
+                    <div class="success-icon">✓</div>
+                    <span class="page-label">COMPLAINT SUBMITTED</span>
+                    <h2>Your complaint has been registered</h2>
+                    <p>Keep this Complaint ID for tracking and future reference.</p>
+                    <div class="complaint-id-box">
+                        <span>Complaint ID</span>
+                        <strong id="generatedComplaintId">JS-00000000-000000</strong>
+                    </div>
+                    <div class="success-actions">
+                        <button class="secondary-btn" id="viewMyCasesBtn">View My Cases</button>
+                        <button class="primary-btn" id="submitAnotherBtn">Submit Another Complaint</button>
+                    </div>
                 </div>
 
             </section>
-
 
             <section id="track" class="content-section">
 
