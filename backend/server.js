@@ -96,7 +96,7 @@ function generateComplaintId() {
 
 app.post("/api/complaints", async (req, res) => {
     try {
-        const { userId, category, title, description, state, district, location } = req.body;
+        const { userId, category, subCategory, title, description, state, district, villageCity, nearestTown, pincode, streetArea, latitude, longitude, location, priority } = req.body;
 
         if (!userId || !category || !title || !description || !state || !district) {
             return res.status(400).json({ success: false, message: "Please fill all required complaint fields." });
@@ -132,8 +132,8 @@ app.post("/api/complaints", async (req, res) => {
         }
 
         await new Promise((resolve, reject) => {
-            db.run("INSERT INTO complaints (complaintId, userId, category, title, description, state, district, location, status, priority) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                [complaintId, userId, category, title, description, state, district, location || "", "Submitted", "Normal"],
+            db.run("INSERT INTO complaints (complaintId, userId, category, subCategory, title, description, state, district, villageCity, nearestTown, pincode, streetArea, latitude, longitude, location, status, priority) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [complaintId, userId, category, subCategory || "", title, description, state, district, villageCity || "", nearestTown || "", pincode || "", streetArea || "", latitude || "", longitude || "", location || "", "Submitted", priority || "Normal"],
                 err => err ? reject(err) : resolve());
         });
 
@@ -151,7 +151,7 @@ app.post("/api/complaints", async (req, res) => {
 app.get("/api/complaints/user/:userId", async (req, res) => {
     try {
         const complaints = await new Promise((resolve, reject) => {
-            db.all("SELECT id, complaintId, category, title, description, state, district, location, status, priority, createdAt, updatedAt FROM complaints WHERE userId = ? ORDER BY createdAt DESC",
+            db.all("SELECT id, complaintId, category, subCategory, title, description, state, district, villageCity, nearestTown, pincode, streetArea, latitude, longitude, location, status, priority, createdAt, updatedAt FROM complaints WHERE userId = ? ORDER BY createdAt DESC",
                 [req.params.userId],
                 (err, rows) => err ? reject(err) : resolve(rows));
         });
