@@ -352,3 +352,345 @@ updateDashboardCounts();
 
 console.log("JanSeva Citizen Dashboard loaded.");
 console.log("Logged in user:", userData);
+
+
+/* ================= NEW COMPLAINT FORM ================= */
+
+const API_BASE_URL = "http://localhost:5000";
+
+const complaintForm = document.getElementById("complaintForm");
+const complaintCategory = document.getElementById("complaintCategory");
+const complaintSubCategory = document.getElementById("complaintSubCategory");
+const complaintDescription = document.getElementById("complaintDescription");
+const descriptionCount = document.getElementById("descriptionCount");
+const complaintPhotos = document.getElementById("complaintPhotos");
+const photoPreview = document.getElementById("photoPreview");
+const useLocationBtn = document.getElementById("useLocationBtn");
+const locationStatus = document.getElementById("locationStatus");
+const latitudeValue = document.getElementById("latitudeValue");
+const longitudeValue = document.getElementById("longitudeValue");
+const complaintFormMessage = document.getElementById("complaintFormMessage");
+const complaintSuccess = document.getElementById("complaintSuccess");
+const generatedComplaintId = document.getElementById("generatedComplaintId");
+const clearComplaintBtn = document.getElementById("clearComplaintBtn");
+const submitAnotherBtn = document.getElementById("submitAnotherBtn");
+const viewMyCasesBtn = document.getElementById("viewMyCasesBtn");
+
+const complaintSubCategories = {
+    "Road & Infrastructure": [
+        "Potholes",
+        "Damaged road",
+        "Broken bridge",
+        "Footpath issue"
+    ],
+    "Water & Sanitation": [
+        "Water leakage",
+        "No water supply",
+        "Drainage",
+        "Garbage"
+    ],
+    "Electricity": [
+        "Streetlight",
+        "Power issue",
+        "Fallen electric pole"
+    ],
+    "Public Safety": [
+        "Unsafe area",
+        "Traffic issue",
+        "Open manhole"
+    ],
+    "Healthcare": [
+        "Government hospital",
+        "Ambulance",
+        "Medicine availability"
+    ],
+    "Other": [
+        "Other public issue"
+    ]
+};
+
+let complaintLatitude = "";
+let complaintLongitude = "";
+
+
+/* Fill registered details */
+
+if (userData) {
+    document.getElementById("complaintFirstName").value = userData.firstName || "";
+    document.getElementById("complaintLastName").value = userData.lastName || "";
+    document.getElementById("complaintEmail").value = userData.email || "";
+    document.getElementById("complaintPhone").value = userData.mobile || "";
+    document.getElementById("complaintState").value = userData.state || "";
+    document.getElementById("complaintDistrict").value = userData.district || "";
+}
+
+
+/* Category -> sub-category */
+
+if (complaintCategory) {
+    complaintCategory.addEventListener("change", function () {
+
+        const category = complaintCategory.value;
+        const options = complaintSubCategories[category] || [];
+
+        complaintSubCategory.innerHTML =
+            '<option value="">Select sub-category</option>';
+
+        options.forEach(function (item) {
+            const option = document.createElement("option");
+            option.value = item;
+            option.textContent = item;
+            complaintSubCategory.appendChild(option);
+        });
+
+        complaintSubCategory.disabled = options.length === 0;
+    });
+}
+
+
+/* Description counter */
+
+if (complaintDescription) {
+    complaintDescription.addEventListener("input", function () {
+        descriptionCount.textContent = complaintDescription.value.length;
+    });
+}
+
+
+/* GPS */
+
+if (useLocationBtn) {
+    useLocationBtn.addEventListener("click", function () {
+
+        if (!navigator.geolocation) {
+            locationStatus.textContent =
+                "Your browser does not support location access.";
+            return;
+        }
+
+        useLocationBtn.disabled = true;
+        useLocationBtn.textContent = "📍 Getting Location...";
+
+        navigator.geolocation.getCurrentPosition(
+            function (position) {
+
+                complaintLatitude =
+                    position.coords.latitude.toFixed(6);
+
+                complaintLongitude =
+                    position.coords.longitude.toFixed(6);
+
+                latitudeValue.textContent = complaintLatitude;
+                longitudeValue.textContent = complaintLongitude;
+
+                locationStatus.textContent =
+                    "Current location captured successfully.";
+
+                useLocationBtn.disabled = false;
+                useLocationBtn.textContent = "✓ Location Captured";
+            },
+            function () {
+
+                locationStatus.textContent =
+                    "Location permission was not granted. You can continue with manual address details.";
+
+                useLocationBtn.disabled = false;
+                useLocationBtn.textContent = "📍 Use My Current Location";
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000
+            }
+        );
+    });
+}
+
+
+/* Photo preview */
+
+if (complaintPhotos) {
+    complaintPhotos.addEventListener("change", function () {
+
+        photoPreview.innerHTML = "";
+
+        Array.from(complaintPhotos.files).slice(0, 6).forEach(function (file) {
+
+            if (!file.type.startsWith("image/")) return;
+
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                const item = document.createElement("div");
+                item.className = "photo-preview-item";
+
+                const image = document.createElement("img");
+                image.src = event.target.result;
+                image.alt = "Complaint evidence";
+
+                item.appendChild(image);
+                photoPreview.appendChild(item);
+            };
+
+            reader.readAsDataURL(file);
+        });
+    });
+}
+
+
+/* Reset complaint form */
+
+function resetComplaintForm() {
+
+    complaintForm.reset();
+
+    document.getElementById("complaintState").value =
+        userData?.state || "";
+
+    document.getElementById("complaintDistrict").value =
+        userData?.district || "";
+
+    complaintSubCategory.innerHTML =
+        '<option value="">Select category first</option>';
+
+    complaintSubCategory.disabled = true;
+
+    descriptionCount.textContent = "0";
+    photoPreview.innerHTML = "";
+    complaintFormMessage.textContent = "";
+
+    complaintLatitude = "";
+    complaintLongitude = "";
+
+    latitudeValue.textContent = "Not set";
+    longitudeValue.textContent = "Not set";
+
+    locationStatus.textContent =
+        "GPS location is optional. You can enter the address manually.";
+}
+
+
+/* Submit complaint */
+
+if (complaintForm) {
+    complaintForm.addEventListener("submit", async function (event) {
+
+        event.preventDefault();
+
+        complaintFormMessage.textContent = "";
+
+        if (!userData || !userData.id) {
+            complaintFormMessage.textContent =
+                "Your login session is missing. Please login again.";
+            return;
+        }
+
+        const submitButton =
+            document.getElementById("submitComplaintBtn");
+
+        submitButton.disabled = true;
+        submitButton.textContent = "Submitting...";
+
+        const street = document.getElementById("complaintStreet").value.trim();
+        const area = document.getElementById("complaintArea").value.trim();
+        const town = document.getElementById("complaintTown").value.trim();
+        const pincode = document.getElementById("complaintPincode").value.trim();
+
+        const locationParts = [
+            street,
+            area,
+            town,
+            pincode,
+            complaintLatitude ? "Lat: " + complaintLatitude : "",
+            complaintLongitude ? "Lng: " + complaintLongitude : ""
+        ].filter(Boolean);
+
+        const payload = {
+            userId: userData.id,
+            category: complaintCategory.value,
+            subCategory: complaintSubCategory.value,
+            title: document.getElementById("complaintTitle").value.trim(),
+            description: complaintDescription.value.trim(),
+            state: document.getElementById("complaintState").value.trim(),
+            district: document.getElementById("complaintDistrict").value.trim(),
+            villageCity: area,
+            nearestTown: town,
+            pincode: pincode,
+            streetArea: street,
+            location: locationParts.join(", "),
+            latitude: complaintLatitude,
+            longitude: complaintLongitude,
+            priority: document.querySelector('input[name="priority"]:checked')?.value || "Normal"
+        };
+
+        try {
+
+            const response = await fetch(API_BASE_URL + "/api/complaints", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || "Could not submit complaint.");
+            }
+
+            generatedComplaintId.textContent = data.complaintId;
+            complaintForm.style.display = "none";
+            complaintSuccess.classList.add("show");
+
+        } catch (error) {
+
+            complaintFormMessage.textContent =
+                error.message || "Unable to connect to the backend.";
+
+        } finally {
+
+            submitButton.disabled = false;
+            submitButton.textContent = "Submit Complaint";
+        }
+    });
+}
+
+
+/* Clear */
+
+if (clearComplaintBtn) {
+    clearComplaintBtn.addEventListener("click", function () {
+        resetComplaintForm();
+    });
+}
+
+
+/* Submit another */
+
+if (submitAnotherBtn) {
+    submitAnotherBtn.addEventListener("click", function () {
+
+        complaintSuccess.classList.remove("show");
+        complaintForm.style.display = "flex";
+        resetComplaintForm();
+
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+    });
+}
+
+
+/* View cases */
+
+if (viewMyCasesBtn) {
+    viewMyCasesBtn.addEventListener("click", function () {
+
+        const targetNav =
+            document.querySelector('[data-section="myCases"]');
+
+        if (targetNav) targetNav.click();
+
+    });
+}
