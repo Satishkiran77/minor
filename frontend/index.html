@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>JanSeva Portal</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header class="header">
+
+        <div class="brand">
+
+            <div class="logo-icon">
+                🇮🇳
+            </div>
+
+            <div>
+                <h2>JanSeva Portal</h2>
+                <p>Your Voice. Our Priority.</p>
+            </div>
+
+        </div>
+
+        <div class="language">
+            🌐
+
+            <select id="languageSelect">
+                <option>English</option>
+                <option>हिन्दी</option>
+                <option>தமிழ்</option>
+                <option>తెలుగు</option>
+                <option>ಕನ್ನಡ</option>
+                <option>മലയാളം</option>
+                <option>বাংলা</option>
+                <option>मराठी</option>
+                <option>ગુજરાતી</option>
+                <option>ਪੰਜਾਬੀ</option>
+                <option>ଓଡ଼ିଆ</option>
+                <option>অসমীয়া</option>
+            </select>
+        </div>
+
+    </header>
+
+
+    <!-- Main -->
+    <main class="login-page">
+
+        <!-- Left Section -->
+        <section class="intro-section">
+
+            <h1>
+                JanSeva Portal
+            </h1>
+
+            <h2>
+                Your Voice. Our Priority.
+            </h2>
+
+            <p>
+                A unified platform for citizens to register complaints,
+                track services and get support from government departments
+                across India.
+            </p>
+
+
+            <div class="features">
+
+                <div class="feature">
+                    <span>📝</span>
+                    <p>Easy Complaint Filing</p>
+                </div>
+
+                <div class="feature">
+                    <span>🔎</span>
+                    <p>Track in Real-time</p>
+                </div>
+
+                <div class="feature">
+                    <span>🏛️</span>
+                    <p>Government Services</p>
+                </div>
+
+                <div class="feature">
+                    <span>🇮🇳</span>
+                    <p>Services Across India</p>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- Login Card -->
+        <section class="login-card">
+
+            <!-- Role Tabs -->
+            <div class="role-tabs">
+
+                <button
+                    class="role active"
+                    type="button"
+                    data-role="Citizen"
+                >
+                    👤
+                    <span>Citizen Login</span>
+                </button>
+
+                <button
+                    class="role"
+                    type="button"
+                    data-role="Officer"
+                >
+                    👮
+                    <span>Officer Login</span>
+                </button>
+
+                <button
+                    class="role"
+                    type="button"
+                    data-role="Admin"
+                >
+                    👨‍💼
+                    <span>Admin Login</span>
+                </button>
+
+            </div>
+
+
+            <!-- Login Content -->
+            <div class="login-content">
+
+                <h2>Welcome Back!</h2>
+
+                <p>
+                    Login to your account to continue
+                </p>
+
+
+                <label for="loginIdentifier">
+                    Email or Mobile Number
+                </label>
+
+                <input
+                    type="text"
+                    id="loginIdentifier"
+                    placeholder="Enter email or mobile number"
+                    autocomplete="username"
+                >
+
+
+                <label for="loginPassword">
+                    Password
+                </label>
+
+                <input
+                    type="password"
+                    id="loginPassword"
+                    placeholder="Enter password"
+                    autocomplete="current-password"
+                >
+
+
+                <div class="login-options">
+
+                    <label>
+                        <input
+                            type="checkbox"
+                            id="rememberMe"
+                        >
+                        Remember me
+                    </label>
+
+                    <a href="#" id="forgotPassword">
+                        Forgot Password?
+                    </a>
+
+                </div>
+
+
+                <button
+                    class="login-button"
+                    id="loginButton"
+                    type="button"
+                >
+                    Login
+                </button>
+
+
+                <!-- Registration -->
+                <div class="register-section">
+
+                    <p>
+                        New to JanSeva Portal?
+                    </p>
+
+                    <button
+                        class="register-button"
+                        id="registerNow"
+                        type="button"
+                    >
+                        👤 Register Now
+                    </button>
+
+                    <button
+                        class="guide-button"
+                        id="howToRegister"
+                        type="button"
+                    >
+                        📖 How to Register?
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- Registration Form -->
+            <div
+                class="registration-form"
+                id="registrationForm"
+                style="display: none;"
+            >
+
+                <h2>Create Your Account</h2>
+
+                <p>
+                    Register on JanSeva Portal to access citizen services
+                </p>
+
+
+                <!-- Role -->
+                <label for="registerRole">
+                    Select Role
+                </label>
+
+                <select id="registerRole">
+
+                    <option value="">
+                        Select your role
+                    </option>
+
+                    <option value="Citizen">
+                        Citizen
+                    </option>
+
+                    <option value="Officer">
+                        Officer
+                    </option>
+
+                </select>
+
+
+                <!-- Name -->
+                <div class="form-row">
+
+                    <div>
+
+                        <label for="firstName">
+                            First Name
+                        </label>
+
+                        <input
+                            type="text"
+                            id="firstName"
+                            placeholder="Enter first name"
+                            autocomplete="given-name"
+                        >
+
+                    </div>
+
+
+                    <div>
+
+                        <label for="lastName">
+                            Last Name
+                        </label>
+
+                        <input
+                            type="text"
+                            id="lastName"
+                            placeholder="Enter last name"
+                            autocomplete="family-name"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <!-- Email -->
+                <label for="email">
+                    Email Address
+                </label>
+
+                <input
+                    type="email"
+                    id="email"
+                    placeholder="Enter your email address"
+                    autocomplete="email"
+                >
+
+
+                <!-- Mobile -->
+                <label for="mobile">
+                    Mobile Number
+                </label>
+
+                <input
+                    type="tel"
+                    id="mobile"
+                    placeholder="Enter 10-digit mobile number"
+                    maxlength="10"
+                    inputmode="numeric"
+                    autocomplete="tel"
+                >
+
+
+                <!-- State -->
+                <label for="state">
+                    State / Union Territory
+                </label>
+
+                <select id="state">
+
+                    <option value="">
+                        Select State / Union Territory
+                    </option>
+
+                    <option value="Andhra Pradesh">Andhra Pradesh</option>
+                    <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+                    <option value="Assam">Assam</option>
+                    <option value="Bihar">Bihar</option>
+                    <option value="Chhattisgarh">Chhattisgarh</option>
+                    <option value="Goa">Goa</option>
+                    <option value="Gujarat">Gujarat</option>
+                    <option value="Haryana">Haryana</option>
+                    <option value="Himachal Pradesh">Himachal Pradesh</option>
+                    <option value="Jharkhand">Jharkhand</option>
+                    <option value="Karnataka">Karnataka</option>
+                    <option value="Kerala">Kerala</option>
+                    <option value="Madhya Pradesh">Madhya Pradesh</option>
+                    <option value="Maharashtra">Maharashtra</option>
+                    <option value="Manipur">Manipur</option>
+                    <option value="Meghalaya">Meghalaya</option>
+                    <option value="Mizoram">Mizoram</option>
+                    <option value="Nagaland">Nagaland</option>
+                    <option value="Odisha">Odisha</option>
+                    <option value="Punjab">Punjab</option>
+                    <option value="Rajasthan">Rajasthan</option>
+                    <option value="Sikkim">Sikkim</option>
+                    <option value="Tamil Nadu">Tamil Nadu</option>
+                    <option value="Telangana">Telangana</option>
+                    <option value="Tripura">Tripura</option>
+                    <option value="Uttar Pradesh">Uttar Pradesh</option>
+                    <option value="Uttarakhand">Uttarakhand</option>
+                    <option value="West Bengal">West Bengal</option>
+
+                    <option value="Andaman and Nicobar Islands">
+                        Andaman and Nicobar Islands
+                    </option>
+
+                    <option value="Chandigarh">
+                        Chandigarh
+                    </option>
+
+                    <option value="Dadra and Nagar Haveli and Daman and Diu">
+                        Dadra and Nagar Haveli and Daman and Diu
+                    </option>
+
+                    <option value="Delhi">
+                        Delhi
+                    </option>
+
+                    <option value="Jammu and Kashmir">
+                        Jammu and Kashmir
+                    </option>
+
+                    <option value="Ladakh">
+                        Ladakh
+                    </option>
+
+                    <option value="Lakshadweep">
+                        Lakshadweep
+                    </option>
+
+                    <option value="Puducherry">
+                        Puducherry
+                    </option>
+
+                </select>
+
+
+                <!-- District -->
+                <label for="district">
+                    District
+                </label>
+
+                <select id="district">
+
+                    <option value="">
+                        Select District
+                    </option>
+
+                </select>
+
+
+                <!-- Password -->
+                <label for="password">
+                    Password
+                </label>
+
+                <div class="password-wrapper">
+
+                    <input
+                        type="password"
+                        id="password"
+                        placeholder="Create password"
+                        autocomplete="new-password"
+                    >
+
+                    <span
+                        class="password-eye"
+                        id="togglePassword"
+                        title="Show password"
+                        role="button"
+                        tabindex="0"
+                    >
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            width="20"
+                            height="20"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+
+                            <path
+                                d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"
+                            ></path>
+
+                            <circle
+                                cx="12"
+                                cy="12"
+                                r="2.8"
+                            ></circle>
+
+                        </svg>
+
+                    </span>
+
+                </div>
+
+
+                <!-- Confirm Password -->
+                <label for="confirmPassword">
+                    Confirm Password
+                </label>
+
+                <input
+                    type="password"
+                    id="confirmPassword"
+                    placeholder="Confirm password"
+                    autocomplete="new-password"
+                >
+
+
+                <!-- Terms -->
+                <label class="terms">
+
+                    <input
+                        type="checkbox"
+                        id="terms"
+                    >
+
+                    <span>
+                        I agree to the Terms & Conditions and Privacy Policy
+                    </span>
+
+                </label>
+
+
+                <!-- Register -->
+                <button
+                    class="register-button"
+                    id="createAccountBtn"
+                    type="button"
+                >
+                    Create Account
+                </button>
+
+
+                <!-- Back -->
+                <button
+                    class="back-login"
+                    id="backToLogin"
+                    type="button"
+                >
+                    ← Back to Login
+                </button>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- Footer -->
+    <footer>
+
+        <div>
+            🔒 Secure & Reliable
+        </div>
+
+        <div>
+            📞 24/7 Support
+        </div>
+
+        <div>
+            👥 For Every Citizen
+        </div>
+
+        <div>
+            🇮🇳 Services Across India
+        </div>
+
+    </footer>
+
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>

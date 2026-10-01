@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citizen Dashboard | JanSeva Portal</title>
+    <link rel="stylesheet" href="citizen-dashboard.css">
+</head>
+
+<body>
+
+    <header class="topbar">
+
+        <div class="logo">
+            <div class="logo-icon">JS</div>
+            <div>
+                <h2>JanSeva</h2>
+                <span>Citizen Portal</span>
+            </div>
+        </div>
+
+        <div class="top-actions">
+            <button class="notification-btn">🔔</button>
+
+            <div class="profile">
+                <div class="profile-avatar" id="profileAvatar">C</div>
+                <div>
+                    <strong id="profileName">Citizen</strong>
+                    <span>Citizen</span>
+                </div>
+            </div>
+
+            <button class="logout-btn" id="logoutBtn">Logout</button>
+        </div>
+
+    </header>
+
+
+    <div class="dashboard-layout">
+
+        <aside class="sidebar">
+
+            <div class="welcome-box">
+                <span>WELCOME</span>
+                <h3 id="welcomeName">Citizen</h3>
+                <p>Manage your complaints</p>
+            </div>
+
+            <nav>
+
+                <button class="nav-item active" data-section="dashboard">
+                    🏠
+                    <span>Dashboard</span>
+                </button>
+
+                <button class="nav-item" data-section="newComplaint">
+                    ➕
+                    <span>New Complaint</span>
+                </button>
+
+                <button class="nav-item" data-section="track">
+                    🔎
+                    <span>Track Complaint</span>
+                </button>
+
+                <button class="nav-item" data-section="myCases">
+                    📁
+                    <span>My Cases</span>
+                </button>
+
+                <button class="nav-item" data-section="notifications">
+                    🔔
+                    <span>Notifications</span>
+                </button>
+
+                <button class="nav-item" data-section="profile">
+                    👤
+                    <span>My Profile</span>
+                </button>
+
+                <button class="nav-item" data-section="settings">
+                    ⚙️
+                    <span>Settings</span>
+                </button>
+
+            </nav>
+
+            <div class="help-box">
+                <strong>Need Help?</strong>
+                <p>We're here to help you with your complaints.</p>
+                <button>Contact Support</button>
+            </div>
+
+        </aside>
+
+
+        <main class="main-content">
+
+            <section id="dashboard" class="content-section active-section">
+
+                <div class="page-heading">
+                    <div>
+                        <span class="page-label">CITIZEN DASHBOARD</span>
+                        <h1>Good day, <span id="headingName">Citizen</span> 👋</h1>
+                        <p>Track and manage your public complaints from one place.</p>
+                    </div>
+
+                    <button class="primary-btn" id="newComplaintBtn">
+                        + Submit New Complaint
+                    </button>
+                </div>
+
+
+                <div class="stats-grid">
+
+                    <div class="stat-card">
+                        <div class="stat-icon blue">📋</div>
+                        <div>
+                            <span>Total Complaints</span>
+                            <h2 id="totalComplaints">0</h2>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon orange">⏳</div>
+                        <div>
+                            <span>Pending</span>
+                            <h2 id="pendingComplaints">0</h2>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon purple">🔧</div>
+                        <div>
+                            <span>In Progress</span>
+                            <h2 id="progressComplaints">0</h2>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon green">✓</div>
+                        <div>
+                            <span>Resolved</span>
+                            <h2 id="resolvedComplaints">0</h2>
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <div class="dashboard-grid">
+
+                    <div class="panel">
+
+                        <div class="panel-header">
+                            <div>
+                                <h2>Recent Complaints</h2>
+                                <p>Your latest submitted complaints</p>
+                            </div>
+
+                            <button class="text-btn" data-section="myCases">
+                                View All
+                            </button>
+                        </div>
+
+                        <div class="complaints-list" id="recentComplaints">
+
+                            <div class="empty-state">
+                                <div>📋</div>
+                                <h3>No complaints yet</h3>
+                                <p>Your submitted complaints will appear here.</p>
+                                <button class="primary-btn" id="emptyComplaintBtn">
+                                    Submit Your First Complaint
+                                </button>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="panel">
+
+                        <div class="panel-header">
+                            <div>
+                                <h2>Complaint Status</h2>
+                                <p>Overview of your cases</p>
+                            </div>
+                        </div>
+
+                        <div class="status-chart">
+
+                            <div class="status-row">
+                                <span>
+                                    <i class="dot pending-dot"></i>
+                                    Pending
+                                </span>
+                                <strong id="chartPending">0</strong>
+                            </div>
+
+                            <div class="progress-bar">
+                                <div id="pendingBar"></div>
+                            </div>
+
+
+                            <div class="status-row">
+                                <span>
+                                    <i class="dot progress-dot"></i>
+                                    In Progress
+                                </span>
+                                <strong id="chartProgress">0</strong>
+                            </div>
+
+                            <div class="progress-bar">
+                                <div id="progressBar"></div>
+                            </div>
+
+
+                            <div class="status-row">
+                                <span>
+                                    <i class="dot resolved-dot"></i>
+                                    Resolved
+                                </span>
+                                <strong id="chartResolved">0</strong>
+                            </div>
+
+                            <div class="progress-bar">
+                                <div id="resolvedBar"></div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="panel activity-panel">
+
+                    <div class="panel-header">
+                        <div>
+                            <h2>Recent Activity</h2>
+                            <p>Latest updates on your complaints</p>
+                        </div>
+                    </div>
+
+                    <div id="activityList">
+
+                        <div class="activity-empty">
+                            <span>🕒</span>
+                            <p>No recent activity</p>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <section id="newComplaint" class="content-section">
+
+                <div class="page-heading">
+                    <div>
+                        <span class="page-label">NEW COMPLAINT</span>
+                        <h1>Submit a Complaint</h1>
+                        <p>Tell us about the issue you want to report.</p>
+                    </div>
+                </div>
+
+                <div class="panel placeholder-panel">
+
+                    <div class="large-icon">📝</div>
+
+                    <h2>Complaint Registration</h2>
+
+                    <p>
+                        The complaint form will allow you to provide
+                        category, location, description and evidence.
+                    </p>
+
+                    <button class="primary-btn">
+                        Start Complaint
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <section id="track" class="content-section">
+
+                <div class="page-heading">
+                    <div>
+                        <span class="page-label">TRACK COMPLAINT</span>
+                        <h1>Track Your Complaint</h1>
+                        <p>Check the current status of your complaint.</p>
+                    </div>
+                </div>
+
+                <div class="panel track-panel">
+
+                    <div class="search-box">
+                        <input
+                            type="text"
+                            id="complaintSearch"
+                            placeholder="Enter Complaint ID"
+                        >
+
+                        <button class="primary-btn" id="trackBtn">
+                            Track
+                        </button>
+                    </div>
+
+                    <div id="trackingResult" class="tracking-result">
+                        Enter your Complaint ID to track its status.
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <section id="myCases" class="content-section">
+
+                <div class="page-heading">
+                    <div>
+                        <span class="page-label">MY CASES</span>
+                        <h1>My Complaints</h1>
+                        <p>View all complaints submitted by you.</p>
+                    </div>
+                </div>
+
+                <div class="panel">
+
+                    <div id="allComplaints" class="complaints-table">
+
+                        <div class="empty-state">
+                            <div>📂</div>
+                            <h3>No complaints found</h3>
+                            <p>You haven't submitted any complaints yet.</p>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <section id="notifications" class="content-section">
+
+                <div class="page-heading">
+                    <div>
+                        <span class="page-label">NOTIFICATIONS</span>
+                        <h1>Notifications</h1>
+                        <p>Stay updated about your complaints.</p>
+                    </div>
+                </div>
+
+                <div class="panel placeholder-panel">
+
+                    <div class="large-icon">🔔</div>
+
+                    <h2>No New Notifications</h2>
+
+                    <p>
+                        Complaint updates and important notices
+                        will appear here.
+                    </p>
+
+                </div>
+
+            </section>
+
+
+            <section id="profile" class="content-section">
+
+                <div class="page-heading">
+                    <div>
+                        <span class="page-label">MY PROFILE</span>
+                        <h1>Profile</h1>
+                        <p>View your registered account information.</p>
+                    </div>
+                </div>
+
+                <div class="panel profile-panel">
+
+                    <div class="profile-large">
+                        <div class="large-avatar" id="largeAvatar">C</div>
+
+                        <div>
+                            <h2 id="profileFullName">Citizen</h2>
+                            <p id="profileEmail">Not available</p>
+                        </div>
+                    </div>
+
+                    <div class="profile-details">
+
+                        <div>
+                            <span>First Name</span>
+                            <strong id="profileFirstName">-</strong>
+                        </div>
+
+                        <div>
+                            <span>Last Name</span>
+                            <strong id="profileLastName">-</strong>
+                        </div>
+
+                        <div>
+                            <span>Email</span>
+                            <strong id="profileEmailDetails">-</strong>
+                        </div>
+
+                        <div>
+                            <span>Mobile</span>
+                            <strong id="profileMobile">-</strong>
+                        </div>
+
+                        <div>
+                            <span>State</span>
+                            <strong id="profileState">-</strong>
+                        </div>
+
+                        <div>
+                            <span>District</span>
+                            <strong id="profileDistrict">-</strong>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <section id="settings" class="content-section">
+
+                <div class="page-heading">
+                    <div>
+                        <span class="page-label">SETTINGS</span>
+                        <h1>Settings</h1>
+                        <p>Manage your portal preferences.</p>
+                    </div>
+                </div>
+
+                <div class="panel settings-panel">
+
+                    <div class="setting-row">
+                        <div>
+                            <h3>Email Notifications</h3>
+                            <p>Receive updates about your complaints.</p>
+                        </div>
+
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-row">
+                        <div>
+                            <h3>Complaint Updates</h3>
+                            <p>Get notified when your complaint status changes.</p>
+                        </div>
+
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                </div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+
+    <script src="citizen-dashboard.js"></script>
+
+</body>
+</html>
