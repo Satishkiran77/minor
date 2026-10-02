@@ -190,44 +190,98 @@ document.querySelectorAll(".text-btn").forEach(function (button) {
 
 /* ================= TRACK COMPLAINT ================= */
 
-const trackButton =
-    document.getElementById("trackBtn");
+const trackButton = document.getElementById("trackBtn");
+const complaintSearch = document.getElementById("complaintSearch");
+const trackingResult = document.getElementById("trackingResult");
+const trackingTimeline = document.getElementById("trackingTimeline");
 
-const complaintSearch =
-    document.getElementById("complaintSearch");
-
-const trackingResult =
-    document.getElementById("trackingResult");
-
-
-if (trackButton) {
-
-    trackButton.addEventListener("click", function () {
-
-        const complaintId =
-            complaintSearch.value.trim();
-
-        if (!complaintId) {
-
-            trackingResult.textContent =
-                "Please enter a Complaint ID.";
-
-            return;
-        }
-
-        trackingResult.innerHTML = `
-            <strong>Complaint ID:</strong> ${complaintId}
-            <br><br>
-            <strong>Status:</strong> No complaint found.
-            <br><br>
-            Complaint tracking will be connected to the backend
-            after the complaint system is created.
-        `;
-
+function formatDate(value) {
+    if (!value) return "-";
+    const date = new Date(value);
+    return isNaN(date.getTime()) ? value : date.toLocaleString("en-IN", {
+        day: "2-digit", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit"
     });
-
 }
 
+function renderTracking(complaint) {
+    const status = complaint.status || "Submitted";
+
+    trackingResult.innerHTML = `
+        <div class="track-summary">
+            <div>
+                <span>Complaint ID</span>
+                <strong>${complaint.complaintId}</strong>
+            </div>
+            <div>
+                <span>Status</span>
+                <strong class="status-badge ${status.toLowerCase().replace(/\\s+/g, "-")}">${status}</strong>
+            </div>
+            <div>
+                <span>Category</span>
+                <strong>${complaint.category || "-"}</strong>
+            </div>
+            <div>
+                <span>Priority</span>
+                <strong>${complaint.priority || "Normal"}</strong>
+            </div>
+        </div>
+        <div class="track-details">
+            <p><strong>Subject:</strong> ${complaint.title || "-"}</p>
+            <p><strong>Location:</strong> ${complaint.location || [complaint.villageCity, complaint.district, complaint.state].filter(Boolean).join(", ") || "-"}</p>
+            <p><strong>Submitted:</strong> ${formatDate(complaint.createdAt)}</p>
+        </div>
+    `;
+
+    const steps = ["Submitted", "Received", "Under Review", "Assigned", "In Progress", "Resolved"];
+    const statusIndex = {
+        "Submitted": 0,
+        "Pending": 2,
+        "Received": 1,
+        "Under Review": 2,
+        "Assigned": 3,
+        "In Progress": 4,
+        "Resolved": 5
+    }[status] ?? 0;
+
+    trackingTimeline.innerHTML = steps.map((step, index) => `
+        <div class="timeline-item ${index <= statusIndex ? "completed" : ""}">
+            <div class="timeline-dot"></div>
+            <div>
+                <strong>${step}</strong>
+                <span>${index <= statusIndex ? "Completed" : "Waiting"}</span>
+            </div>
+        </div>
+    `).join("");
+}
+
+async function trackComplaint() {
+    const complaintId = complaintSearch.value.trim().toUpperCase();
+
+    if (!complaintId) {
+        trackingResult.textContent = "Please enter a Complaint ID.";
+        trackingTimeline.innerHTML = "";
+        return;
+    }
+
+    trackingResult.textContent = "Loading complaint...";
+    trackingTimeline.innerHTML = "";
+
+    try {
+        const response = await fetch(API_BASE_URL + "/api/complaints/track/" + encodeURIComponent(complaintId));
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || "Complaint not found.");
+        }
+
+        renderTracking(data.complaint);
+    } catch (error) {
+        trackingResult.innerHTML = `<strong>${error.message || "Unable to track complaint."}</strong>`;
+    }
+}
+
+if (trackButton) trackButton.addEventListener("click", trackComplaint);
 
 /* ================= ENTER TO TRACK ================= */
 
@@ -271,82 +325,144 @@ if (logoutBtn) {
 }
 
 
-/* ================= INITIAL DATA ================= */
+/* ================= REAL COMPLAINT DATA ================= */
 
-/*
-   Complaints backend lo create ayyaka
-   ikkada real data load chestham.
-*/
+let complaints = [];
 
-const complaints = [];
+async function loadDashboardData() {
+    if (!userData || !userData.id) return;
 
+    try {
+        const [complaintsResponse, statsResponse] = await Promise.all([
+            fetch(API_BASE_URL + "/api/complaints/user/" + userData.id),
+            fetch(API_BASE_URL + "/api/complaints/stats/" + userData.id)
+        ]);
 
-/* ================= DASHBOARD COUNTS ================= */
+        const complaintsData = await complaintsResponse.json();
+        const statsData = await statsResponse.json();
 
-function updateDashboardCounts() {
+        if (!complaintsResponse.ok || !complaintsData.success) {
+            throw new Error(complaintsData.message || "Could not load complaints.");
+        }
 
-    const total =
-        complaints.length;
+        complaints = complaintsData.complaints || [];
 
-    const pending =
-        complaints.filter(
-            item => item.status === "Pending"
-        ).length;
-
-    const progress =
-        complaints.filter(
-            item => item.status === "In Progress"
-        ).length;
-
-    const resolved =
-        complaints.filter(
-            item => item.status === "Resolved"
-        ).length;
-
-
-    document.getElementById("totalComplaints")
-        .textContent = total;
-
-    document.getElementById("pendingComplaints")
-        .textContent = pending;
-
-    document.getElementById("progressComplaints")
-        .textContent = progress;
-
-    document.getElementById("resolvedComplaints")
-        .textContent = resolved;
-
-
-    document.getElementById("chartPending")
-        .textContent = pending;
-
-    document.getElementById("chartProgress")
-        .textContent = progress;
-
-    document.getElementById("chartResolved")
-        .textContent = resolved;
-
-
-    const totalForChart =
-        total || 1;
-
-
-    document.getElementById("pendingBar")
-        .style.width =
-        `${(pending / totalForChart) * 100}%`;
-
-    document.getElementById("progressBar")
-        .style.width =
-        `${(progress / totalForChart) * 100}%`;
-
-    document.getElementById("resolvedBar")
-        .style.width =
-        `${(resolved / totalForChart) * 100}%`;
+        renderDashboardStats(statsData.success ? statsData.stats : null);
+        renderRecentComplaints();
+        renderMyCases();
+        renderRecentActivity();
+    } catch (error) {
+        console.error("Dashboard data error:", error);
+    }
 }
 
+function renderDashboardStats(stats) {
+    const total = stats?.total ?? complaints.length;
+    const pending = (stats?.submitted ?? 0) + (stats?.pending ?? 0);
+    const progress = stats?.inProgress ?? complaints.filter(item => item.status === "In Progress").length;
+    const resolved = stats?.resolved ?? complaints.filter(item => item.status === "Resolved").length;
 
-updateDashboardCounts();
+    document.getElementById("totalComplaints").textContent = total;
+    document.getElementById("pendingComplaints").textContent = pending;
+    document.getElementById("progressComplaints").textContent = progress;
+    document.getElementById("resolvedComplaints").textContent = resolved;
 
+    document.getElementById("chartPending").textContent = pending;
+    document.getElementById("chartProgress").textContent = progress;
+    document.getElementById("chartResolved").textContent = resolved;
+
+    const totalForChart = total || 1;
+    document.getElementById("pendingBar").style.width = (pending / totalForChart * 100) + "%";
+    document.getElementById("progressBar").style.width = (progress / totalForChart * 100) + "%";
+    document.getElementById("resolvedBar").style.width = (resolved / totalForChart * 100) + "%";
+}
+
+function renderRecentComplaints() {
+    const box = document.getElementById("recentComplaints");
+    if (!box) return;
+
+    if (!complaints.length) {
+        box.innerHTML = `
+            <div class="empty-state">
+                <div>📋</div>
+                <h3>No complaints yet</h3>
+                <p>Your submitted complaints will appear here.</p>
+                <button class="primary-btn" id="emptyComplaintBtn">Submit Your First Complaint</button>
+            </div>`;
+        document.getElementById("emptyComplaintBtn")?.addEventListener("click", openNewComplaint);
+        return;
+    }
+
+    box.innerHTML = complaints.slice(0, 4).map(item => `
+        <div class="complaint-list-item">
+            <div>
+                <strong>${item.complaintId}</strong>
+                <span>${item.title}</span>
+                <small>${item.category} · ${formatDate(item.createdAt)}</small>
+            </div>
+            <span class="status-badge ${(item.status || "Submitted").toLowerCase().replace(/\\s+/g, "-")}">${item.status || "Submitted"}</span>
+        </div>`).join("");
+}
+
+function renderMyCases() {
+    const box = document.getElementById("allComplaints");
+    if (!box) return;
+
+    if (!complaints.length) {
+        box.innerHTML = `
+            <div class="empty-state">
+                <div>📂</div>
+                <h3>No complaints found</h3>
+                <p>You haven't submitted any complaints yet.</p>
+            </div>`;
+        return;
+    }
+
+    box.innerHTML = `
+        <div class="cases-table-wrap">
+            <table class="cases-table">
+                <thead>
+                    <tr>
+                        <th>Complaint ID</th>
+                        <th>Category</th>
+                        <th>Location</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${complaints.map(item => `
+                        <tr>
+                            <td><strong>${item.complaintId}</strong></td>
+                            <td>${item.category || "-"}</td>
+                            <td>${item.location || [item.villageCity, item.district].filter(Boolean).join(", ") || "-"}</td>
+                            <td>${formatDate(item.createdAt)}</td>
+                            <td><span class="status-badge ${(item.status || "Submitted").toLowerCase().replace(/\\s+/g, "-")}">${item.status || "Submitted"}</span></td>
+                        </tr>`).join("")}
+                </tbody>
+            </table>
+        </div>`;
+}
+
+function renderRecentActivity() {
+    const box = document.getElementById("activityList");
+    if (!box) return;
+
+    if (!complaints.length) {
+        box.innerHTML = `<div class="activity-empty"><span>🕒</span> No complaint activity yet.</div>`;
+        return;
+    }
+
+    box.innerHTML = complaints.slice(0, 5).map(item => `
+        <div class="activity-item">
+            <span class="activity-icon">•</span>
+            <div>
+                <strong>${item.complaintId}</strong>
+                <p>${item.title} · Status: ${item.status || "Submitted"}</p>
+                <small>${formatDate(item.updatedAt || item.createdAt)}</small>
+            </div>
+        </div>`).join("");
+}
 
 /* ================= CONSOLE ================= */
 
@@ -641,6 +757,7 @@ if (complaintForm) {
             generatedComplaintId.textContent = data.complaintId;
             complaintForm.style.display = "none";
             complaintSuccess.classList.add("show");
+            await loadDashboardData();
 
         } catch (error) {
 
