@@ -1,3 +1,5 @@
+const API_BASE_URL = "http://localhost:5000";
+
 /* ================= USER DATA ================= */
 
 const userData = JSON.parse(
@@ -471,8 +473,6 @@ console.log("Logged in user:", userData);
 
 
 /* ================= NEW COMPLAINT FORM ================= */
-
-const API_BASE_URL = "http://localhost:5000";
 
 const complaintForm = document.getElementById("complaintForm");
 const complaintCategory = document.getElementById("complaintCategory");
