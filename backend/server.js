@@ -166,7 +166,7 @@ app.get("/api/complaints/user/:userId", async (req, res) => {
 app.get("/api/complaints/track/:complaintId", async (req, res) => {
     try {
         const complaint = await new Promise((resolve, reject) => {
-            db.get("SELECT id, complaintId, category, title, description, state, district, location, status, priority, createdAt, updatedAt FROM complaints WHERE complaintId = ?",
+            db.get("SELECT id, complaintId, category, subCategory, title, description, state, district, villageCity, nearestTown, pincode, streetArea, latitude, longitude, location, status, priority, createdAt, updatedAt FROM complaints WHERE complaintId = ?",
                 [req.params.complaintId],
                 (err, row) => err ? reject(err) : resolve(row));
         });
@@ -185,7 +185,7 @@ app.get("/api/complaints/track/:complaintId", async (req, res) => {
 app.get("/api/complaints/stats/:userId", async (req, res) => {
     try {
         const stats = await new Promise((resolve, reject) => {
-            db.get("SELECT COUNT(*) AS total, SUM(CASE WHEN status = 'Submitted' THEN 1 ELSE 0 END) AS submitted, SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END) AS inProgress, SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) AS resolved FROM complaints WHERE userId = ?",
+            db.get("SELECT COUNT(*) AS total, SUM(CASE WHEN status IN ('Submitted','Pending') THEN 1 ELSE 0 END) AS pending, SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END) AS inProgress, SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) AS resolved FROM complaints WHERE userId = ?",
                 [req.params.userId],
                 (err, row) => err ? reject(err) : resolve(row));
         });
@@ -194,7 +194,7 @@ app.get("/api/complaints/stats/:userId", async (req, res) => {
             success: true,
             stats: {
                 total: stats.total || 0,
-                submitted: stats.submitted || 0,
+                pending: stats.pending || 0,
                 inProgress: stats.inProgress || 0,
                 resolved: stats.resolved || 0
             }
