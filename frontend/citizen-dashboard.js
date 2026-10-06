@@ -335,24 +335,41 @@ async function loadDashboardData() {
     if (!userData || !userData.id) return;
 
     try {
-        const [complaintsResponse, statsResponse] = await Promise.all([
-            fetch(API_BASE_URL + "/api/complaints/user/" + userData.id),
-            fetch(API_BASE_URL + "/api/complaints/stats/" + userData.id)
-        ]);
+        const complaintsResponse = await fetch(
+            API_BASE_URL + "/api/complaints/user/" + userData.id
+        );
 
         const complaintsData = await complaintsResponse.json();
-        const statsData = await statsResponse.json();
 
         if (!complaintsResponse.ok || !complaintsData.success) {
-            throw new Error(complaintsData.message || "Could not load complaints.");
+            throw new Error(
+                complaintsData.message || "Could not load complaints."
+            );
         }
 
         complaints = complaintsData.complaints || [];
 
-        renderDashboardStats(statsData.success ? statsData.stats : null);
         renderRecentComplaints();
         renderMyCases();
         renderRecentActivity();
+
+        try {
+            const statsResponse = await fetch(
+                API_BASE_URL + "/api/complaints/stats/" + userData.id
+            );
+
+            const statsData = await statsResponse.json();
+
+            renderDashboardStats(
+                statsResponse.ok && statsData.success
+                    ? statsData.stats
+                    : null
+            );
+        } catch (statsError) {
+            console.error("Complaint stats error:", statsError);
+            renderDashboardStats(null);
+        }
+
     } catch (error) {
         console.error("Dashboard data error:", error);
     }
@@ -755,9 +772,22 @@ if (complaintForm) {
             }
 
             generatedComplaintId.textContent = data.complaintId;
+
             complaintForm.style.display = "none";
             complaintSuccess.classList.add("show");
+
+            openNewComplaint();
+
             await loadDashboardData();
+
+            setTimeout(function () {
+                complaintSuccess.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start"
+                });
+            }, 50);
+
+            return;
 
         } catch (error) {
 
@@ -811,3 +841,8 @@ if (viewMyCasesBtn) {
 
     });
 }
+
+
+/* ================= INITIAL DASHBOARD LOAD ================= */
+
+loadDashboardData();
