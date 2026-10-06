@@ -32,12 +32,31 @@ app.get("/api/location/reverse", async (req, res) => {
 
         const data = await response.json();
         const a = data.address || {};
-        const pincode = a.postcode || "";
+        const pincodeResponse = await fetch(
+            "https://livingatlas.esri.in/server1/rest/services/India/Pincode_Boundary_2025/MapServer/0/query?" +
+            new URLSearchParams({
+                geometry: lat + "," + lon,
+                geometryType: "esriGeometryPoint",
+                inSR: "4326",
+                spatialRel: "esriSpatialRelIntersects",
+                outFields: "pin_code,fname,state",
+                returnGeometry: "false",
+                f: "json"
+            }).toString()
+        );
 
-        if (!pincode) {
+        if (!pincodeResponse.ok) {
+            throw new Error("India PIN boundary service unavailable.");
+        }
+
+        const pincodeData = await pincodeResponse.json();
+        const pincodeFeature = pincodeData.features && pincodeData.features[0];
+        const pincode = pincodeFeature?.attributes?.pin_code || "";
+
+        if (!/^\d{6}$/.test(String(pincode))) {
             return res.status(422).json({
                 success: false,
-                message: "Verified pincode could not be determined for this location."
+                message: "Official India PIN boundary could not determine a valid pincode for this location."
             });
         }
 
@@ -168,23 +187,31 @@ app.post("/api/complaints", async (req, res) => {
             });
         }
 
-        const locationResponse = await fetch(
-            "https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=" +
-            encodeURIComponent(Number(latitude)) + "&lon=" + encodeURIComponent(Number(longitude)),
-            { headers: { "User-Agent": "JanSevaPortal/1.0" } }
+        const pincodeResponse = await fetch(
+            "https://livingatlas.esri.in/server1/rest/services/India/Pincode_Boundary_2025/MapServer/0/query?" +
+            new URLSearchParams({
+                geometry: Number(latitude) + "," + Number(longitude),
+                geometryType: "esriGeometryPoint",
+                inSR: "4326",
+                spatialRel: "esriSpatialRelIntersects",
+                outFields: "pin_code,fname,state",
+                returnGeometry: "false",
+                f: "json"
+            }).toString()
         );
 
-        if (!locationResponse.ok) {
+        if (!pincodeResponse.ok) {
             return res.status(503).json({
                 success: false,
-                message: "Current location could not be verified. Complaint was not submitted."
+                message: "Current location could not be verified from the India PIN boundary service. Complaint was not submitted."
             });
         }
 
-        const verifiedLocation = await locationResponse.json();
-        const verifiedPincode = verifiedLocation.address?.postcode || "";
+        const pincodeData = await pincodeResponse.json();
+        const pincodeFeature = pincodeData.features && pincodeData.features[0];
+        const verifiedPincode = pincodeFeature?.attributes?.pin_code || "";
 
-        if (!verifiedPincode || String(pincode) !== String(verifiedPincode)) {
+        if (!/^\d{6}$/.test(String(verifiedPincode)) || String(pincode) !== String(verifiedPincode)) {
             return res.status(400).json({
                 success: false,
                 message: "Pincode does not match your current GPS location. Complaint was not submitted.",
