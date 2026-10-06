@@ -596,38 +596,71 @@ if (useLocationBtn) {
     useLocationBtn.addEventListener("click", function () {
 
         if (!navigator.geolocation) {
-            locationStatus.textContent =
-                "Your browser does not support location access.";
+            locationStatus.textContent = "Your browser does not support location access.";
             return;
         }
 
         useLocationBtn.disabled = true;
-        useLocationBtn.textContent = "📍 Getting Location...";
+        useLocationBtn.textContent = "📍 Verifying Location...";
 
         navigator.geolocation.getCurrentPosition(
-            function (position) {
+            async function (position) {
 
-                complaintLatitude =
-                    position.coords.latitude.toFixed(6);
-
-                complaintLongitude =
-                    position.coords.longitude.toFixed(6);
+                complaintLatitude = position.coords.latitude.toFixed(6);
+                complaintLongitude = position.coords.longitude.toFixed(6);
 
                 latitudeValue.textContent = complaintLatitude;
                 longitudeValue.textContent = complaintLongitude;
+                locationStatus.textContent = "Checking your real location and pincode...";
 
-                locationStatus.textContent = "Location captured. Please verify the pincode.";
+                try {
+                    const response = await fetch(
+                        API_BASE_URL +
+                        "/api/location/reverse?lat=" +
+                        encodeURIComponent(complaintLatitude) +
+                        "&lon=" +
+                        encodeURIComponent(complaintLongitude)
+                    );
 
-                useLocationBtn.disabled = false;
-                useLocationBtn.textContent = "✓ Location Captured";
+                    const data = await response.json();
+
+                    if (!response.ok || !data.success) {
+                        throw new Error(data.message || "Could not verify this location.");
+                    }
+
+                    const location = data.location;
+
+                    document.getElementById("complaintState").value = location.state || "";
+                    document.getElementById("complaintDistrict").value = location.district || "";
+                    document.getElementById("complaintArea").value = location.villageCity || "";
+                    document.getElementById("complaintTown").value = location.nearestTown || "";
+                    document.getElementById("complaintPincode").value = location.pincode || "";
+                    document.getElementById("complaintStreet").value = location.streetArea || "";
+
+                    locationStatus.textContent =
+                        "Location verified. Pincode " + location.pincode +
+                        " matches your current GPS location.";
+
+                    useLocationBtn.textContent = "✓ Location Verified";
+                } catch (error) {
+                    complaintLatitude = "";
+                    complaintLongitude = "";
+                    latitudeValue.textContent = "Not set";
+                    longitudeValue.textContent = "Not set";
+                    document.getElementById("complaintPincode").value = "";
+                    locationStatus.textContent = error.message;
+                    useLocationBtn.textContent = "📍 Verify My Current Location";
+                } finally {
+                    useLocationBtn.disabled = false;
+                }
             },
             function () {
-
+                complaintLatitude = "";
+                complaintLongitude = "";
                 locationStatus.textContent =
-                     "Location permission was not granted. Current location is required.";
-
+                    "Location permission was not granted. Current location is required.";
                 useLocationBtn.disabled = false;
-                useLocationBtn.textContent = "📍 Use My Current Location";
+                useLocationBtn.textContent = "📍 Verify My Current Location";
             },
             {
                 enableHighAccuracy: true,
