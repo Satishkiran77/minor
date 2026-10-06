@@ -12,6 +12,57 @@ app.get("/", (req, res) => {
     res.json({ message: "JanSeva Portal Backend is Running!" });
 });
 
+app.get("/api/location/reverse", async (req, res) => {
+    try {
+        const lat = Number(req.query.lat);
+        const lon = Number(req.query.lon);
+
+        if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < 6 || lat > 38 || lon < 68 || lon > 98) {
+            return res.status(400).json({ success: false, message: "Invalid location. Please use your current location in India." });
+        }
+
+        const url = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=" +
+            encodeURIComponent(lat) + "&lon=" + encodeURIComponent(lon);
+
+        const response = await fetch(url, {
+            headers: { "User-Agent": "JanSevaPortal/1.0" }
+        });
+
+        if (!response.ok) throw new Error("Location service unavailable.");
+
+        const data = await response.json();
+        const a = data.address || {};
+        const pincode = a.postcode || "";
+
+        if (!pincode) {
+            return res.status(422).json({
+                success: false,
+                message: "Verified pincode could not be determined for this location."
+            });
+        }
+
+        res.json({
+            success: true,
+            location: {
+                latitude: lat,
+                longitude: lon,
+                state: a.state || "",
+                district: a.state_district || a.district || a.county || "",
+                villageCity: a.city || a.town || a.village || a.municipality || a.suburb || "",
+                nearestTown: a.town || a.city || a.municipality || "",
+                pincode: pincode,
+                streetArea: a.road || a.suburb || a.neighbourhood || ""
+            }
+        });
+    } catch (error) {
+        console.error("Reverse geocoding error:", error);
+        res.status(503).json({
+            success: false,
+            message: "Could not verify the current location right now."
+        });
+    }
+});
+
 app.post("/api/register", async (req, res) => {
     try {
         const { role, firstName, lastName, email, mobile, state, district, password } = req.body;
@@ -50,6 +101,37 @@ app.post("/api/login", async (req, res) => {
 
         if (!identifier || !password || !role) {
             return res.status(400).json({ success: false, message: "Please enter all login details." });
+        }
+
+        if (!latitude || !longitude || !/^\\d{6}$/.test(String(pincode || ""))) {
+            return res.status(400).json({
+                success: false,
+                message: "Current GPS location and a valid 6-digit pincode are required."
+            });
+        }
+
+        const locationResponse = await fetch(
+            "https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=" +
+            encodeURIComponent(Number(latitude)) + "&lon=" + encodeURIComponent(Number(longitude)),
+            { headers: { "User-Agent": "JanSevaPortal/1.0" } }
+        );
+
+        if (!locationResponse.ok) {
+            return res.status(503).json({
+                success: false,
+                message: "Current location could not be verified. Complaint was not submitted."
+            });
+        }
+
+        const verifiedLocation = await locationResponse.json();
+        const verifiedPincode = verifiedLocation.address?.postcode || "";
+
+        if (!verifiedPincode || String(pincode) !== String(verifiedPincode)) {
+            return res.status(400).json({
+                success: false,
+                message: "Pincode does not match your current GPS location. Complaint was not submitted.",
+                verifiedPincode
+            });
         }
 
         const user = await new Promise((resolve, reject) => {
