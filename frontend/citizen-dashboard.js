@@ -616,8 +616,7 @@ if (useLocationBtn) {
                 latitudeValue.textContent = complaintLatitude;
                 longitudeValue.textContent = complaintLongitude;
 
-                locationStatus.textContent =
-                    "Current location captured successfully.";
+                locationStatus.textContent = "Location captured. Please verify the pincode.";
 
                 useLocationBtn.disabled = false;
                 useLocationBtn.textContent = "✓ Location Captured";
@@ -625,7 +624,7 @@ if (useLocationBtn) {
             function () {
 
                 locationStatus.textContent =
-                    "Location permission was not granted. You can continue with manual address details.";
+                     "Location permission was not granted. Current location is required.";
 
                 useLocationBtn.disabled = false;
                 useLocationBtn.textContent = "📍 Use My Current Location";
@@ -698,7 +697,7 @@ function resetComplaintForm() {
     longitudeValue.textContent = "Not set";
 
     locationStatus.textContent =
-        "GPS location is optional. You can enter the address manually.";
+        "Current GPS location is required. Verify your location before submitting.";
 }
 
 
@@ -710,6 +709,16 @@ if (complaintForm) {
         event.preventDefault();
 
         complaintFormMessage.textContent = "";
+
+        if (!complaintLatitude || !complaintLongitude) {
+            complaintFormMessage.textContent = "Please verify your current GPS location before submitting.";
+            return;
+        }
+
+        if (!/^\\d{6}$/.test(document.getElementById("complaintPincode").value.trim())) {
+            complaintFormMessage.textContent = "Please use the verified 6-digit pincode shown after location verification.";
+            return;
+        }
 
         if (!userData || !userData.id) {
             complaintFormMessage.textContent =
