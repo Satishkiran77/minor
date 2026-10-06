@@ -354,11 +354,11 @@
                         <div class="form-grid">
                             <div class="form-group">
                                 <label for="complaintState">State <span>*</span></label>
-                                <input type="text" id="complaintState" required>
+                                <input type="text" id="complaintState" required readonly>
                             </div>
                             <div class="form-group">
                                 <label for="complaintDistrict">District <span>*</span></label>
-                                <input type="text" id="complaintDistrict" required>
+                                <input type="text" id="complaintDistrict" required readonly>
                             </div>
                             <div class="form-group">
                                 <label for="complaintArea">Village / City <span>*</span></label>
@@ -369,8 +369,8 @@
                                 <input type="text" id="complaintTown" placeholder="Nearest town">
                             </div>
                             <div class="form-group">
-                                <label for="complaintPincode">Pincode</label>
-                                <input type="text" id="complaintPincode" maxlength="6" inputmode="numeric" placeholder="6-digit pincode">
+                                <label for="complaintPincode">Pincode <span>*</span></label>
+                                <input type="text" id="complaintPincode" maxlength="6" inputmode="numeric" placeholder="Verified from current location" required readonly>
                             </div>
                             <div class="form-group">
                                 <label for="complaintStreet">Street / Area</label>
@@ -380,13 +380,13 @@
                             <div class="location-box form-full">
                                 <div>
                                     <strong>Exact Location</strong>
-                                    <p id="locationStatus">GPS location is optional. You can enter the address manually.</p>
+                                    <p id="locationStatus">Current GPS location is required. Address and pincode will be verified from the real location.</p>
                                     <div class="coordinates">
                                         <span>Latitude: <b id="latitudeValue">Not set</b></span>
                                         <span>Longitude: <b id="longitudeValue">Not set</b></span>
                                     </div>
                                 </div>
-                                <button type="button" class="secondary-btn" id="useLocationBtn">📍 Use My Current Location</button>
+                                <button type="button" class="secondary-btn" id="useLocationBtn">📍 Verify My Current Location</button>
                             </div>
                         </div>
                     </div>
@@ -663,7 +663,7 @@
     </div>
 
 
-    <script src="citizen-dashboard.js?v=20261006"></script>
+    <script src="citizen-dashboard.js?v=20261007"></script>
 
 </body>
 </html>
