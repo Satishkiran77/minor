@@ -103,37 +103,6 @@ app.post("/api/login", async (req, res) => {
             return res.status(400).json({ success: false, message: "Please enter all login details." });
         }
 
-        if (!latitude || !longitude || !/^\\d{6}$/.test(String(pincode || ""))) {
-            return res.status(400).json({
-                success: false,
-                message: "Current GPS location and a valid 6-digit pincode are required."
-            });
-        }
-
-        const locationResponse = await fetch(
-            "https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=" +
-            encodeURIComponent(Number(latitude)) + "&lon=" + encodeURIComponent(Number(longitude)),
-            { headers: { "User-Agent": "JanSevaPortal/1.0" } }
-        );
-
-        if (!locationResponse.ok) {
-            return res.status(503).json({
-                success: false,
-                message: "Current location could not be verified. Complaint was not submitted."
-            });
-        }
-
-        const verifiedLocation = await locationResponse.json();
-        const verifiedPincode = verifiedLocation.address?.postcode || "";
-
-        if (!verifiedPincode || String(pincode) !== String(verifiedPincode)) {
-            return res.status(400).json({
-                success: false,
-                message: "Pincode does not match your current GPS location. Complaint was not submitted.",
-                verifiedPincode
-            });
-        }
-
         const user = await new Promise((resolve, reject) => {
             db.get("SELECT * FROM users WHERE (email = ? OR mobile = ?) AND role = ?",
                 [identifier, identifier, role],
