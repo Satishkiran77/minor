@@ -748,7 +748,7 @@ if (complaintForm) {
             return;
         }
 
-        if (!/^\\d{6}$/.test(document.getElementById("complaintPincode").value.trim())) {
+        if (!/^\d{6}$/.test(document.getElementById("complaintPincode").value.trim())) {
             complaintFormMessage.textContent = "Please use the verified 6-digit pincode shown after location verification.";
             return;
         }
