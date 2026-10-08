@@ -35,7 +35,7 @@ app.get("/api/location/reverse", async (req, res) => {
         const pincodeResponse = await fetch(
             "https://livingatlas.esri.in/server1/rest/services/India/Pincode_Boundary_2025/MapServer/0/query?" +
             new URLSearchParams({
-                geometry: lat + "," + lon,
+                geometry: lon + "," + lat,
                 geometryType: "esriGeometryPoint",
                 inSR: "4326",
                 spatialRel: "esriSpatialRelIntersects",
@@ -190,7 +190,7 @@ app.post("/api/complaints", async (req, res) => {
         const pincodeResponse = await fetch(
             "https://livingatlas.esri.in/server1/rest/services/India/Pincode_Boundary_2025/MapServer/0/query?" +
             new URLSearchParams({
-                geometry: Number(latitude) + "," + Number(longitude),
+                geometry: Number(longitude) + "," + Number(latitude),
                 geometryType: "esriGeometryPoint",
                 inSR: "4326",
                 spatialRel: "esriSpatialRelIntersects",
