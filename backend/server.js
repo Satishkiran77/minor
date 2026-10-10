@@ -328,5 +328,63 @@ app.get("/api/complaints/stats/:userId", async (req, res) => {
     }
 });
 
+
+async function getStaffRole(userId) {
+    return new Promise((resolve, reject) => {
+        db.get("SELECT role FROM users WHERE id = ?", [userId],
+            (err, row) => err ? reject(err) : resolve(row?.role || null));
+    });
+}
+
+app.get("/api/admin/complaints", async (req, res) => {
+    try {
+        const role = await getStaffRole(req.query.userId);
+        if (!["Admin", "Officer"].includes(role)) {
+            return res.status(403).json({ success: false, message: "Admin or Officer access required." });
+        }
+
+        const complaints = await new Promise((resolve, reject) => {
+            db.all("SELECT c.id, c.complaintId, c.category, c.subCategory, c.title, c.description, c.state, c.district, c.villageCity, c.nearestTown, c.pincode, c.streetArea, c.latitude, c.longitude, c.location, c.status, c.priority, c.createdAt, c.updatedAt, u.firstName, u.lastName, u.email, u.mobile FROM complaints c LEFT JOIN users u ON u.id = c.userId ORDER BY c.createdAt DESC",
+                [], (err, rows) => err ? reject(err) : resolve(rows));
+        });
+        res.json({ success: true, complaints });
+    } catch (error) {
+        console.error("Admin complaints error:", error);
+        res.status(500).json({ success: false, message: "Could not load complaints." });
+    }
+});
+
+app.patch("/api/admin/complaints/:complaintId/status", async (req, res) => {
+    try {
+        const role = await getStaffRole(req.body.userId);
+        if (!["Admin", "Officer"].includes(role)) {
+            return res.status(403).json({ success: false, message: "Admin or Officer access required." });
+        }
+
+        const allowedStatuses = ["Submitted", "Received", "Under Review", "Assigned", "In Progress", "Resolved"];
+        const status = String(req.body.status || "");
+        if (!allowedStatuses.includes(status)) {
+            return res.status(400).json({ success: false, message: "Invalid complaint status." });
+        }
+
+        const result = await new Promise((resolve, reject) => {
+            db.run("UPDATE complaints SET status = ?, updatedAt = CURRENT_TIMESTAMP WHERE complaintId = ?",
+                [status, req.params.complaintId], function (err) {
+                    if (err) reject(err);
+                    else resolve(this.changes);
+                });
+        });
+
+        if (!result) {
+            return res.status(404).json({ success: false, message: "Complaint not found." });
+        }
+
+        res.json({ success: true, message: "Complaint status updated.", status });
+    } catch (error) {
+        console.error("Update complaint status error:", error);
+        res.status(500).json({ success: false, message: "Could not update complaint status." });
+    }
+});
+
 const PORT = 5000;
 app.listen(PORT, () => console.log("Server running on port " + PORT));
