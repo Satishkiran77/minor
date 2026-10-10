@@ -923,8 +923,43 @@ const adminAccessMessage = document.getElementById("adminAccessMessage");
 const adminComplaintsList = document.getElementById("adminComplaintsList");
 const refreshAdminComplaints = document.getElementById("refreshAdminComplaints");
 
-if (userData && ["Admin", "Officer"].includes(userData.role) && adminComplaintsNav) {
+const isStaffUser = userData && ["Admin", "Officer"].includes(userData.role);
+
+if (isStaffUser && adminComplaintsNav) {
     adminComplaintsNav.hidden = false;
+
+    document.title = (userData.role === "Admin" ? "Admin Workspace" : "Officer Workspace") + " | JanSeva Portal";
+
+    const portalRoleLabel = document.getElementById("portalRoleLabel");
+    const profileRoleLabel = document.getElementById("profileRoleLabel");
+    const sidebarWelcomeText = document.getElementById("sidebarWelcomeText");
+
+    if (portalRoleLabel) portalRoleLabel.textContent = userData.role + " Workspace";
+    if (profileRoleLabel) profileRoleLabel.textContent = userData.role;
+    if (sidebarWelcomeText) sidebarWelcomeText.textContent = "Review and manage citizen complaints";
+
+    navItems.forEach(item => {
+        if (!["adminComplaints", "settings"].includes(item.dataset.section)) {
+            item.hidden = true;
+        }
+    });
+
+    sections.forEach(section => {
+        if (!["adminComplaints", "settings"].includes(section.id)) {
+            section.classList.remove("active-section");
+            section.hidden = true;
+        }
+    });
+
+    const staffHeading = document.querySelector("#adminComplaints .page-heading .page-label");
+    if (staffHeading) staffHeading.textContent = userData.role.toUpperCase() + " WORKSPACE";
+
+    if (adminComplaintsNav) {
+        navItems.forEach(item => item.classList.remove("active"));
+        adminComplaintsNav.classList.add("active");
+        const staffSection = document.getElementById("adminComplaints");
+        if (staffSection) staffSection.classList.add("active-section");
+    }
 }
 
 async function loadAdminComplaints() {
@@ -1021,4 +1056,12 @@ if (adminComplaintsNav) {
 
 /* ================= INITIAL DASHBOARD LOAD ================= */
 
-loadDashboardData();
+if (isStaffUser) {
+    loadAdminComplaints();
+} else if (userData && userData.role === "Citizen") {
+    loadDashboardData();
+} else {
+    alert("This account role is not permitted to access the portal.");
+    localStorage.removeItem("jansevaUser");
+    window.location.href = "index.html";
+}
