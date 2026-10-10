@@ -199,10 +199,23 @@ const trackingTimeline = document.getElementById("trackingTimeline");
 
 function formatDate(value) {
     if (!value) return "-";
-    const date = new Date(value);
+
+    // SQLite CURRENT_TIMESTAMP is UTC and has no timezone suffix.
+    // Explicitly mark that format as UTC, then display it in the browser's local timezone.
+    const timestamp = typeof value === "string" &&
+        /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)
+        ? value.replace(" ", "T") + "Z"
+        : value;
+
+    const date = new Date(timestamp);
+
     return isNaN(date.getTime()) ? value : date.toLocaleString("en-IN", {
-        day: "2-digit", month: "short", year: "numeric",
-        hour: "2-digit", minute: "2-digit"
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true
     });
 }
 
