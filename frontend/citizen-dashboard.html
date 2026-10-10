@@ -63,6 +63,11 @@
                     <span>Track Complaint</span>
                 </button>
 
+                <button class="nav-item" data-section="adminComplaints" id="adminComplaintsNav" hidden>
+                    🛠️
+                    <span>Manage Complaints</span>
+                </button>
+
                 <button class="nav-item" data-section="myCases">
                     📁
                     <span>My Cases</span>
@@ -618,6 +623,21 @@
             </section>
 
 
+            <section id="adminComplaints" class="content-section">
+                <div class="page-heading">
+                    <div>
+                        <span class="page-label">STAFF WORKSPACE</span>
+                        <h1>Complaint Management</h1>
+                        <p>Review citizen complaints and update their status.</p>
+                    </div>
+                    <button class="primary-btn" id="refreshAdminComplaints">Refresh</button>
+                </div>
+                <div class="panel">
+                    <div id="adminAccessMessage" role="status">Checking staff access...</div>
+                    <div id="adminComplaintsList"></div>
+                </div>
+            </section>
+
             <section id="settings" class="content-section">
 
                 <div class="page-heading">
@@ -663,7 +683,7 @@
     </div>
 
 
-    <script src="citizen-dashboard.js?v=20261007"></script>
+    <script src="citizen-dashboard.js?v=20261010"></script>
 
 </body>
 </html>
