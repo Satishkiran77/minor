@@ -941,6 +941,10 @@ if (isStaffUser && adminComplaintsNav) {
     navItems.forEach(item => {
         if (!["adminComplaints", "settings"].includes(item.dataset.section)) {
             item.hidden = true;
+            item.style.display = "none";
+        } else {
+            item.hidden = false;
+            item.style.display = "";
         }
     });
 
@@ -948,6 +952,10 @@ if (isStaffUser && adminComplaintsNav) {
         if (!["adminComplaints", "settings"].includes(section.id)) {
             section.classList.remove("active-section");
             section.hidden = true;
+            section.style.display = "none";
+        } else {
+            section.hidden = false;
+            section.style.display = section.id === "adminComplaints" ? "block" : "none";
         }
     });
 
