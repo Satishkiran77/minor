@@ -6,7 +6,7 @@ const db = require("./database");
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '18mb' }));
 
 app.get("/", (req, res) => {
     res.json({ message: "JanSeva Portal Backend is Running!" });
@@ -166,7 +166,7 @@ function generateComplaintId() {
 
 app.post("/api/complaints", async (req, res) => {
     try {
-        const { userId, category, subCategory, title, description, state, district, villageCity, nearestTown, pincode, streetArea, latitude, longitude, location, priority } = req.body;
+        const { userId, category, subCategory, title, description, state, district, villageCity, nearestTown, pincode, streetArea, latitude, longitude, location, priority, evidencePhotos = [] } = req.body;
 
         if (!userId || !category || !title || !description || !state || !district) {
             return res.status(400).json({ success: false, message: "Please fill all required complaint fields." });
@@ -180,6 +180,19 @@ app.post("/api/complaints", async (req, res) => {
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found." });
         }
+        if (!Array.isArray(evidencePhotos) || evidencePhotos.length > 6) {
+            return res.status(400).json({ success: false, message: "You can upload a maximum of 6 evidence photos." });
+        }
+
+        const allowedPhotoTypes = ["image/jpeg", "image/png", "image/webp"];
+        for (const photo of evidencePhotos) {
+            if (!photo || !allowedPhotoTypes.includes(photo.type) || typeof photo.data !== "string" ||
+                !photo.data.startsWith("data:" + photo.type + ";base64,") ||
+                photo.data.length > 2800000) {
+                return res.status(400).json({ success: false, message: "Each photo must be JPG, PNG or WEBP and smaller than 2 MB." });
+            }
+        }
+
         if (!latitude || !longitude || !/^\d{6}$/.test(String(pincode || ""))) {
             return res.status(400).json({
                 success: false,
@@ -241,8 +254,8 @@ app.post("/api/complaints", async (req, res) => {
         }
 
         await new Promise((resolve, reject) => {
-            db.run("INSERT INTO complaints (complaintId, userId, category, subCategory, title, description, state, district, villageCity, nearestTown, pincode, streetArea, latitude, longitude, location, status, priority) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                [complaintId, userId, category, subCategory || "", title, description, state, district, villageCity || "", nearestTown || "", pincode || "", streetArea || "", latitude || "", longitude || "", location || "", "Submitted", priority || "Normal"],
+            db.run("INSERT INTO complaints (complaintId, userId, category, subCategory, title, description, state, district, villageCity, nearestTown, pincode, streetArea, latitude, longitude, location, status, priority, evidencePhotos) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [complaintId, userId, category, subCategory || "", title, description, state, district, villageCity || "", nearestTown || "", pincode || "", streetArea || "", latitude || "", longitude || "", location || "", "Submitted", priority || "Normal", JSON.stringify(evidencePhotos)],
                 err => err ? reject(err) : resolve());
         });
 
@@ -275,7 +288,7 @@ app.get("/api/complaints/user/:userId", async (req, res) => {
 app.get("/api/complaints/track/:complaintId", async (req, res) => {
     try {
         const complaint = await new Promise((resolve, reject) => {
-            db.get("SELECT id, complaintId, category, subCategory, title, description, state, district, villageCity, nearestTown, pincode, streetArea, latitude, longitude, location, status, priority, createdAt, updatedAt FROM complaints WHERE complaintId = ?",
+            db.get("SELECT id, complaintId, category, subCategory, title, description, state, district, villageCity, nearestTown, pincode, streetArea, latitude, longitude, location, status, priority, evidencePhotos, createdAt, updatedAt FROM complaints WHERE complaintId = ?",
                 [req.params.complaintId],
                 (err, row) => err ? reject(err) : resolve(row));
         });
@@ -284,6 +297,7 @@ app.get("/api/complaints/track/:complaintId", async (req, res) => {
             return res.status(404).json({ success: false, message: "Complaint not found." });
         }
 
+        complaint.evidencePhotos = JSON.parse(complaint.evidencePhotos || "[]");
         res.json({ success: true, complaint });
     } catch (error) {
         console.error("Track complaint error:", error);
