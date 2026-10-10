@@ -915,6 +915,110 @@ if (viewMyCasesBtn) {
 }
 
 
+
+/* ================= ADMIN / OFFICER COMPLAINT MANAGEMENT ================= */
+
+const adminComplaintsNav = document.getElementById("adminComplaintsNav");
+const adminAccessMessage = document.getElementById("adminAccessMessage");
+const adminComplaintsList = document.getElementById("adminComplaintsList");
+const refreshAdminComplaints = document.getElementById("refreshAdminComplaints");
+
+if (userData && ["Admin", "Officer"].includes(userData.role) && adminComplaintsNav) {
+    adminComplaintsNav.hidden = false;
+}
+
+async function loadAdminComplaints() {
+    if (!userData || !["Admin", "Officer"].includes(userData.role)) {
+        if (adminAccessMessage) adminAccessMessage.textContent = "This section is available only to Admin and Officer accounts.";
+        return;
+    }
+
+    if (adminAccessMessage) adminAccessMessage.textContent = "Loading complaints...";
+    if (adminComplaintsList) adminComplaintsList.innerHTML = "";
+
+    try {
+        const response = await fetch(
+            API_BASE_URL + "/api/admin/complaints?userId=" + encodeURIComponent(userData.id)
+        );
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || "Could not load complaints.");
+
+        if (adminAccessMessage) adminAccessMessage.textContent = data.complaints.length + " complaint(s) found.";
+
+        if (!adminComplaintsList) return;
+        if (!data.complaints.length) {
+            adminComplaintsList.innerHTML = '<div class="empty-state"><h3>No complaints found</h3><p>New citizen complaints will appear here.</p></div>';
+            return;
+        }
+
+        const statusOptions = ["Submitted", "Received", "Under Review", "Assigned", "In Progress", "Resolved"];
+        adminComplaintsList.innerHTML = `
+            <div class="cases-table-wrap">
+                <table class="cases-table">
+                    <thead><tr>
+                        <th>Complaint ID</th><th>Citizen</th><th>Complaint</th><th>Location</th><th>Priority</th><th>Status</th><th>Update</th>
+                    </tr></thead>
+                    <tbody>
+                        ${data.complaints.map(item => `
+                            <tr>
+                                <td><strong>${item.complaintId}</strong><br><small>${formatDate(item.createdAt)}</small></td>
+                                <td>${item.firstName || ""} ${item.lastName || ""}<br><small>${item.mobile || item.email || ""}</small></td>
+                                <td>${item.title}<br><small>${item.category} · ${item.subCategory || "General"}</small><br><small>${item.description}</small></td>
+                                <td>${item.location || [item.villageCity, item.district, item.pincode].filter(Boolean).join(", ") || "-"}</td>
+                                <td>${item.priority || "Normal"}</td>
+                                <td><span class="status-badge">${item.status || "Submitted"}</span></td>
+                                <td>
+                                    <select class="admin-status-select" data-complaint-id="${item.complaintId}" aria-label="Status for ${item.complaintId}">
+                                        ${statusOptions.map(status => `<option value="${status}" ${status === item.status ? "selected" : ""}>${status}</option>`).join("")}
+                                    </select>
+                                    <button class="primary-btn admin-save-status" data-complaint-id="${item.complaintId}">Save</button>
+                                </td>
+                            </tr>`).join("")}
+                    </tbody>
+                </table>
+            </div>`;
+
+        adminComplaintsList.querySelectorAll(".admin-save-status").forEach(button => {
+            button.addEventListener("click", async function () {
+                const complaintId = button.dataset.complaintId;
+                const select = adminComplaintsList.querySelector('.admin-status-select[data-complaint-id="' + complaintId + '"]');
+                button.disabled = true;
+                button.textContent = "Saving...";
+                try {
+                    const updateResponse = await fetch(
+                        API_BASE_URL + "/api/admin/complaints/" + encodeURIComponent(complaintId) + "/status",
+                        {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ userId: userData.id, status: select.value })
+                        }
+                    );
+                    const updateData = await updateResponse.json();
+                    if (!updateResponse.ok || !updateData.success) throw new Error(updateData.message || "Status update failed.");
+                    if (adminAccessMessage) adminAccessMessage.textContent = complaintId + " status updated to " + select.value + ".";
+                    await loadAdminComplaints();
+                    await loadDashboardData();
+                } catch (error) {
+                    if (adminAccessMessage) adminAccessMessage.textContent = error.message;
+                } finally {
+                    button.disabled = false;
+                    button.textContent = "Save";
+                }
+            });
+        });
+    } catch (error) {
+        if (adminAccessMessage) adminAccessMessage.textContent = error.message || "Could not load complaints.";
+    }
+}
+
+if (refreshAdminComplaints) {
+    refreshAdminComplaints.addEventListener("click", loadAdminComplaints);
+}
+
+if (adminComplaintsNav) {
+    adminComplaintsNav.addEventListener("click", loadAdminComplaints);
+}
+
 /* ================= INITIAL DASHBOARD LOAD ================= */
 
 loadDashboardData();
