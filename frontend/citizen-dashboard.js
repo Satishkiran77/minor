@@ -675,29 +675,36 @@ if (useLocationBtn) {
 
 if (complaintPhotos) {
     complaintPhotos.addEventListener("change", function () {
-
         photoPreview.innerHTML = "";
+        const files = Array.from(complaintPhotos.files);
 
-        Array.from(complaintPhotos.files).slice(0, 6).forEach(function (file) {
+        if (files.length > 6) {
+            complaintFormMessage.textContent = "Choose up to 6 photos only.";
+            complaintPhotos.value = "";
+            return;
+        }
 
-            if (!file.type.startsWith("image/")) return;
+        for (const file of files) {
+            if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 2 * 1024 * 1024) {
+                complaintFormMessage.textContent = "Each photo must be JPG, PNG or WEBP and smaller than 2 MB.";
+                complaintPhotos.value = "";
+                photoPreview.innerHTML = "";
+                return;
+            }
 
             const reader = new FileReader();
-
             reader.onload = function (event) {
                 const item = document.createElement("div");
                 item.className = "photo-preview-item";
-
                 const image = document.createElement("img");
                 image.src = event.target.result;
                 image.alt = "Complaint evidence";
-
                 item.appendChild(image);
                 photoPreview.appendChild(item);
             };
-
             reader.readAsDataURL(file);
-        });
+        }
+        complaintFormMessage.textContent = "";
     });
 }
 
@@ -779,7 +786,17 @@ if (complaintForm) {
             complaintLongitude ? "Lng: " + complaintLongitude : ""
         ].filter(Boolean);
 
+        const evidencePhotos = await Promise.all(
+            Array.from(complaintPhotos.files).map(file => new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve({ type: file.type, data: reader.result });
+                reader.onerror = () => reject(new Error("Could not read an evidence photo."));
+                reader.readAsDataURL(file);
+            }))
+        );
+
         const payload = {
+            evidencePhotos,
             userId: userData.id,
             category: complaintCategory.value,
             subCategory: complaintSubCategory.value,
