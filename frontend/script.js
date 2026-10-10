@@ -87,7 +87,12 @@ loginButton.addEventListener("click", async function () {
 
             alert("Login successful! Welcome " + data.user.firstName);
 
-            window.location.href = "citizen-dashboard.html";
+            if (data.user.role === "Citizen" || data.user.role === "Officer" || data.user.role === "Admin") {
+                window.location.href = "citizen-dashboard.html";
+            } else {
+                localStorage.removeItem("jansevaUser");
+                alert("This account has an unsupported role. Please contact the administrator.");
+            }
         }
         else {
 
