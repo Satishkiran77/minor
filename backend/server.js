@@ -164,6 +164,65 @@ function generateComplaintId() {
     return "JS-" + datePart + "-" + randomPart;
 }
 
+
+async function createComplaintNotification(userId, complaintId, title, message, type = "info") {
+    return new Promise((resolve, reject) => {
+        db.run(
+            "INSERT INTO notifications (userId, complaintId, title, message, type) VALUES (?, ?, ?, ?, ?)",
+            [userId, complaintId, title, message, type],
+            err => err ? reject(err) : resolve()
+        );
+    });
+}
+
+app.get("/api/notifications/:userId", async (req, res) => {
+    try {
+        const notifications = await new Promise((resolve, reject) => {
+            db.all(
+                "SELECT id, complaintId, title, message, type, isRead, createdAt FROM notifications WHERE userId = ? ORDER BY createdAt DESC, id DESC LIMIT 100",
+                [req.params.userId],
+                (err, rows) => err ? reject(err) : resolve(rows)
+            );
+        });
+        res.json({ success: true, notifications, unreadCount: notifications.filter(item => !item.isRead).length });
+    } catch (error) {
+        console.error("Notifications fetch error:", error);
+        res.status(500).json({ success: false, message: "Could not load notifications." });
+    }
+});
+
+app.patch("/api/notifications/:notificationId/read", async (req, res) => {
+    try {
+        const userId = req.body.userId;
+        const result = await new Promise((resolve, reject) => {
+            db.run(
+                "UPDATE notifications SET isRead = 1 WHERE id = ? AND userId = ?",
+                [req.params.notificationId, userId],
+                function (err) { err ? reject(err) : resolve(this.changes); }
+            );
+        });
+        if (!result) return res.status(404).json({ success: false, message: "Notification not found." });
+        res.json({ success: true, message: "Notification marked as read." });
+    } catch (error) {
+        console.error("Mark notification read error:", error);
+        res.status(500).json({ success: false, message: "Could not update notification." });
+    }
+});
+
+app.patch("/api/notifications/read-all", async (req, res) => {
+    try {
+        const userId = req.body.userId;
+        if (!userId) return res.status(400).json({ success: false, message: "User ID is required." });
+        await new Promise((resolve, reject) => {
+            db.run("UPDATE notifications SET isRead = 1 WHERE userId = ?", [userId], err => err ? reject(err) : resolve());
+        });
+        res.json({ success: true, message: "All notifications marked as read." });
+    } catch (error) {
+        console.error("Mark all notifications read error:", error);
+        res.status(500).json({ success: false, message: "Could not update notifications." });
+    }
+});
+
 app.post("/api/complaints", async (req, res) => {
     try {
         const { userId, category, subCategory, title, description, state, district, villageCity, nearestTown, pincode, streetArea, latitude, longitude, location, priority, evidencePhotos = [] } = req.body;
@@ -258,6 +317,14 @@ app.post("/api/complaints", async (req, res) => {
                 [complaintId, userId, category, subCategory || "", title, description, state, district, villageCity || "", nearestTown || "", pincode || "", streetArea || "", latitude || "", longitude || "", location || "", "Submitted", priority || "Normal", JSON.stringify(evidencePhotos)],
                 err => err ? reject(err) : resolve());
         });
+
+        await createComplaintNotification(
+            userId,
+            complaintId,
+            "Complaint submitted successfully",
+            "Your complaint " + complaintId + " has been registered and is awaiting review.",
+            "success"
+        );
 
         res.status(201).json({
             success: true,
@@ -377,6 +444,30 @@ app.patch("/api/admin/complaints/:complaintId/status", async (req, res) => {
 
         if (!result) {
             return res.status(404).json({ success: false, message: "Complaint not found." });
+        }
+
+        const complaintOwner = await new Promise((resolve, reject) => {
+            db.get("SELECT userId FROM complaints WHERE complaintId = ?", [req.params.complaintId],
+                (err, row) => err ? reject(err) : resolve(row?.userId || null));
+        });
+
+        const statusMessages = {
+            "Submitted": "Your complaint has been submitted.",
+            "Received": "The department has received your complaint.",
+            "Under Review": "Your complaint is now under review.",
+            "Assigned": "Your complaint has been assigned to the concerned team.",
+            "In Progress": "Work on your complaint is in progress.",
+            "Resolved": "Your complaint has been marked as resolved."
+        };
+
+        if (complaintOwner) {
+            await createComplaintNotification(
+                complaintOwner,
+                req.params.complaintId,
+                "Complaint status updated",
+                req.params.complaintId + ": " + statusMessages[status],
+                status === "Resolved" ? "success" : "info"
+            );
         }
 
         res.json({ success: true, message: "Complaint status updated.", status });
