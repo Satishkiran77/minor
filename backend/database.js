@@ -19,6 +19,11 @@ db.run("CREATE TABLE IF NOT EXISTS complaints (id INTEGER PRIMARY KEY AUTOINCREM
 });
 
 
+db.run("CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER NOT NULL, complaintId TEXT, title TEXT NOT NULL, message TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'info', isRead INTEGER NOT NULL DEFAULT 0, createdAt DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (userId) REFERENCES users(id))", (err) => {
+    if (err) console.error("Notifications table creation failed:", err.message);
+    else console.log("Notifications table ready.");
+});
+
 // Add new complaint fields when an older database already exists.
 const complaintColumns = [
     ["subCategory", "TEXT"],
