@@ -1721,3 +1721,33 @@ body {
     }
 }
 
+/* ================= DASHBOARD LANGUAGE SELECTOR ================= */
+.dashboard-language {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text);
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.dashboard-language select {
+    max-width: 125px;
+    min-height: 38px;
+    padding: 7px 26px 7px 9px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: #fff;
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+}
+
+@media (max-width: 650px) {
+    .dashboard-language select {
+        max-width: 90px;
+        min-height: 34px;
+        font-size: 11px;
+    }
+}
+
