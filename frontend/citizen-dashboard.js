@@ -389,15 +389,29 @@ async function loadDashboardData() {
 }
 
 function renderDashboardStats(stats) {
+    const pendingStatuses = ["Submitted", "Pending", "Received", "Under Review", "Assigned"];
     const total = stats?.total ?? complaints.length;
-    const pending = (stats?.submitted ?? 0) + (stats?.pending ?? 0);
+    const pending = stats?.pending ?? complaints.filter(item => pendingStatuses.includes(item.status || "Submitted")).length;
     const progress = stats?.inProgress ?? complaints.filter(item => item.status === "In Progress").length;
     const resolved = stats?.resolved ?? complaints.filter(item => item.status === "Resolved").length;
+    const averageDays = stats?.averageResolutionDays;
 
     document.getElementById("totalComplaints").textContent = total;
     document.getElementById("pendingComplaints").textContent = pending;
     document.getElementById("progressComplaints").textContent = progress;
     document.getElementById("resolvedComplaints").textContent = resolved;
+
+    const averageElement = document.getElementById("averageResolutionTime");
+    if (averageElement) {
+        averageElement.textContent = averageDays == null
+            ? "—"
+            : (Number(averageDays) < 1
+                ? Math.max(1, Math.round(Number(averageDays) * 24)) + " hrs"
+                : Number(averageDays).toFixed(1) + " days");
+        averageElement.title = averageDays == null
+            ? "No resolved complaints available to calculate an average yet."
+            : "Average time between complaint submission and its latest resolved status timestamp.";
+    }
 
     document.getElementById("chartPending").textContent = pending;
     document.getElementById("chartProgress").textContent = progress;
