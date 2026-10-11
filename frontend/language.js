@@ -101,7 +101,7 @@
         if (!trimmed) return;
         let original = trimmed;
         for (const [english, values] of Object.entries(translations)) {
-            if (values[code] && values[code] === trimmed) {
+            if (Object.values(values).includes(trimmed)) {
                 original = english;
                 break;
             }
