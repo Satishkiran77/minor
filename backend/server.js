@@ -90,6 +90,11 @@ app.post("/api/register", async (req, res) => {
             return res.status(400).json({ success: false, message: "Please fill all required fields." });
         }
 
+        // Public registration must never create privileged Admin accounts.
+        if (!["Citizen", "Officer"].includes(role)) {
+            return res.status(403).json({ success: false, message: "Admin accounts must be created locally by an authorized administrator." });
+        }
+
         const existingUser = await new Promise((resolve, reject) => {
             db.get("SELECT id FROM users WHERE email = ? OR mobile = ?", [email, mobile],
                 (err, row) => err ? reject(err) : resolve(row));
