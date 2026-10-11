@@ -916,6 +916,135 @@ if (viewMyCasesBtn) {
 
 
 
+
+/* ================= CITIZEN NOTIFICATIONS ================= */
+
+const notificationSummary = document.getElementById("notificationSummary");
+const notificationsList = document.getElementById("notificationsList");
+const headerUnreadCount = document.getElementById("headerUnreadCount");
+const headerNotificationBtn = document.getElementById("headerNotificationBtn");
+const markAllNotificationsReadBtn = document.getElementById("markAllNotificationsRead");
+
+function escapeNotificationText(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    }[char]));
+}
+
+function displayNotificationDate(value) {
+    if (!value) return "Date unavailable";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+}
+
+async function loadNotifications() {
+    if (!userData || userData.role !== "Citizen") return;
+    if (notificationSummary) notificationSummary.textContent = "Loading notifications...";
+    if (notificationsList) notificationsList.innerHTML = "";
+
+    try {
+        const response = await fetch(API_BASE_URL + "/api/notifications/" + encodeURIComponent(userData.id));
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || "Could not load notifications.");
+        }
+
+        const notifications = data.notifications || [];
+        const unreadCount = Number(data.unreadCount || 0);
+
+        if (headerUnreadCount) {
+            headerUnreadCount.textContent = unreadCount > 99 ? "99+" : String(unreadCount);
+            headerUnreadCount.hidden = unreadCount === 0;
+        }
+
+        if (notificationSummary) {
+            notificationSummary.textContent = unreadCount
+                ? unreadCount + " unread notification(s)"
+                : "You're all caught up.";
+        }
+
+        if (!notificationsList) return;
+        if (!notifications.length) {
+            notificationsList.innerHTML = '<div class="empty-state"><div>🔔</div><h3>No notifications yet</h3><p>Complaint registration and status updates will appear here.</p></div>';
+            return;
+        }
+
+        notificationsList.innerHTML = notifications.map(item => `
+            <article class="notification-item ${Number(item.isRead) ? "is-read" : "is-unread"}">
+                <div class="notification-item-icon">${item.type === "success" ? "✓" : "🔔"}</div>
+                <div class="notification-item-content">
+                    <strong>${escapeNotificationText(item.title)}</strong>
+                    <p>${escapeNotificationText(item.message)}</p>
+                    <small>${escapeNotificationText(displayNotificationDate(item.createdAt))}${item.complaintId ? " · " + escapeNotificationText(item.complaintId) : ""}</small>
+                </div>
+                ${Number(item.isRead) ? "" : '<button class="secondary-btn mark-notification-read" data-notification-id="' + escapeNotificationText(item.id) + '">Mark read</button>'}
+            </article>
+        `).join("");
+
+        notificationsList.querySelectorAll(".mark-notification-read").forEach(button => {
+            button.addEventListener("click", async () => {
+                button.disabled = true;
+                try {
+                    const readResponse = await fetch(
+                        API_BASE_URL + "/api/notifications/" + encodeURIComponent(button.dataset.notificationId) + "/read",
+                        {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ userId: userData.id })
+                        }
+                    );
+                    const readData = await readResponse.json();
+                    if (!readResponse.ok || !readData.success) {
+                        throw new Error(readData.message || "Could not mark notification as read.");
+                    }
+                    await loadNotifications();
+                } catch (error) {
+                    if (notificationSummary) notificationSummary.textContent = error.message;
+                    button.disabled = false;
+                }
+            });
+        });
+    } catch (error) {
+        if (notificationSummary) notificationSummary.textContent = error.message || "Could not load notifications.";
+        if (headerUnreadCount) headerUnreadCount.hidden = true;
+    }
+}
+
+if (headerNotificationBtn) {
+    headerNotificationBtn.addEventListener("click", () => {
+        const notificationsNav = document.querySelector('[data-section="notifications"]');
+        if (notificationsNav && !notificationsNav.hidden) notificationsNav.click();
+    });
+}
+
+if (markAllNotificationsReadBtn) {
+    markAllNotificationsReadBtn.addEventListener("click", async () => {
+        if (!userData || userData.role !== "Citizen") return;
+        markAllNotificationsReadBtn.disabled = true;
+        try {
+            const response = await fetch(API_BASE_URL + "/api/notifications/read-all", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId: userData.id })
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.message || "Could not update notifications.");
+            await loadNotifications();
+        } catch (error) {
+            if (notificationSummary) notificationSummary.textContent = error.message;
+        } finally {
+            markAllNotificationsReadBtn.disabled = false;
+        }
+    });
+}
+
+const notificationsNav = document.querySelector('[data-section="notifications"]');
+if (notificationsNav) notificationsNav.addEventListener("click", loadNotifications);
+
 /* ================= ADMIN / OFFICER COMPLAINT MANAGEMENT ================= */
 
 const adminComplaintsNav = document.getElementById("adminComplaintsNav");
@@ -1068,6 +1197,7 @@ if (isStaffUser) {
     loadAdminComplaints();
 } else if (userData && userData.role === "Citizen") {
     loadDashboardData();
+    loadNotifications();
 } else {
     alert("This account role is not permitted to access the portal.");
     localStorage.removeItem("jansevaUser");
