@@ -20,7 +20,7 @@
         </div>
 
         <div class="top-actions">
-            <button class="notification-btn">🔔</button>
+            <button class="notification-btn" id="headerNotificationBtn" aria-label="Open notifications">🔔 <span id="headerUnreadCount" class="notification-count" hidden>0</span></button>
 
             <div class="profile">
                 <div class="profile-avatar" id="profileAvatar">C</div>
@@ -547,17 +547,14 @@
                     </div>
                 </div>
 
-                <div class="panel placeholder-panel">
+                <div class="page-heading">
+                    <div></div>
+                    <button class="primary-btn" id="markAllNotificationsRead">Mark all as read</button>
+                </div>
 
-                    <div class="large-icon">🔔</div>
-
-                    <h2>No New Notifications</h2>
-
-                    <p>
-                        Complaint updates and important notices
-                        will appear here.
-                    </p>
-
+                <div class="panel">
+                    <div id="notificationSummary" role="status">Loading notifications...</div>
+                    <div id="notificationsList" class="notifications-list"></div>
                 </div>
 
             </section>
