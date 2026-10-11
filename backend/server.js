@@ -375,18 +375,29 @@ app.get("/api/complaints/track/:complaintId", async (req, res) => {
 app.get("/api/complaints/stats/:userId", async (req, res) => {
     try {
         const stats = await new Promise((resolve, reject) => {
-            db.get("SELECT COUNT(*) AS total, SUM(CASE WHEN status IN ('Submitted','Pending') THEN 1 ELSE 0 END) AS pending, SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END) AS inProgress, SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) AS resolved FROM complaints WHERE userId = ?",
+            db.get(
+                "SELECT COUNT(*) AS total, " +
+                "SUM(CASE WHEN status IN ('Submitted','Pending','Received','Under Review','Assigned') THEN 1 ELSE 0 END) AS pending, " +
+                "SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END) AS inProgress, " +
+                "SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) AS resolved, " +
+                "AVG(CASE WHEN status = 'Resolved' AND julianday(updatedAt) >= julianday(createdAt) " +
+                "THEN julianday(updatedAt) - julianday(createdAt) END) AS averageResolutionDays " +
+                "FROM complaints WHERE userId = ?",
                 [req.params.userId],
-                (err, row) => err ? reject(err) : resolve(row));
+                (err, row) => err ? reject(err) : resolve(row || {})
+            );
         });
 
         res.json({
             success: true,
             stats: {
-                total: stats.total || 0,
-                pending: stats.pending || 0,
-                inProgress: stats.inProgress || 0,
-                resolved: stats.resolved || 0
+                total: Number(stats.total) || 0,
+                pending: Number(stats.pending) || 0,
+                inProgress: Number(stats.inProgress) || 0,
+                resolved: Number(stats.resolved) || 0,
+                averageResolutionDays: stats.averageResolutionDays == null
+                    ? null
+                    : Number(stats.averageResolutionDays)
             }
         });
     } catch (error) {
