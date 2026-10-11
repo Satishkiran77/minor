@@ -1478,3 +1478,118 @@ body {
         min-width: 100px;
     }
 }
+
+
+/* ================= NOTIFICATIONS ================= */
+
+.notification-btn {
+    position: relative;
+}
+
+.notification-count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: #dc2626;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.notification-count[hidden] {
+    display: none;
+}
+
+.notifications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.notification-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid #e7ebf0;
+    border-radius: 14px;
+    background: #ffffff;
+}
+
+.notification-item.is-unread {
+    border-color: #c9d9f5;
+    background: #f7faff;
+}
+
+.notification-item-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 11px;
+    background: var(--blue-light);
+    color: var(--blue);
+    font-weight: 700;
+}
+
+.notification-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-item-content strong {
+    display: block;
+    color: var(--text, #202938);
+    font-size: 13px;
+}
+
+.notification-item-content p {
+    margin: 5px 0;
+    color: #5f697b;
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.notification-item-content small {
+    color: var(--muted, #7b8494);
+    font-size: 10px;
+}
+
+.notification-item .secondary-btn {
+    flex-shrink: 0;
+    border: 1px solid #d7deea;
+    border-radius: 8px;
+    padding: 7px 10px;
+    background: #ffffff;
+    color: var(--blue);
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.notification-item .secondary-btn:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+@media (max-width: 600px) {
+    .notification-item {
+        flex-wrap: wrap;
+        padding: 12px;
+    }
+
+    .notification-item .secondary-btn {
+        margin-left: 48px;
+    }
+}
