@@ -1,11 +1,13 @@
 const readline = require("readline");
+const sqlite3 = require("sqlite3").verbose();
 const bcrypt = require("bcryptjs");
-const db = require("./database");
 
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
+
+const db = new sqlite3.Database("./janseva.db");
 
 function ask(question) {
     return new Promise(resolve => rl.question(question, answer => resolve(answer.trim())));
@@ -13,6 +15,11 @@ function ask(question) {
 
 async function main() {
     try {
+        await new Promise((resolve, reject) => {
+            db.once("open", resolve);
+            db.once("error", reject);
+        });
+
         console.log("\nJanSeva Portal - Create Initial Admin Account\n");
 
         const firstName = await ask("First name: ");
