@@ -322,7 +322,7 @@
 
 
     // Additional Hindi, Tamil and Telugu strings used by the actual forms and dynamic dashboard.
-    Object.assign(translations, {
+    const primaryLanguageFixes = {
       "Select your role": {hi:"अपनी भूमिका चुनें",ta:"உங்கள் பங்கைத் தேர்ந்தெடுக்கவும்",te:"మీ పాత్రను ఎంచుకోండి"},
       "Officer": {hi:"अधिकारी",ta:"அதிகாரி",te:"అధికారి"},
       "Select State / Union Territory": {hi:"राज्य / केंद्र शासित प्रदेश चुनें",ta:"மாநிலம் / யூனியன் பிரதேசத்தைத் தேர்ந்தெடுக்கவும்",te:"రాష్ట్రం / కేంద్రపాలిత ప్రాంతాన్ని ఎంచుకోండి"},
@@ -374,6 +374,9 @@
       "Registration successful!": {hi:"पंजीकरण सफल रहा!",ta:"பதிவு வெற்றிகரமாக முடிந்தது!",te:"నమోదు విజయవంతమైంది!"},
       "Invalid response from server.": {hi:"सर्वर से अमान्य प्रतिक्रिया मिली।",ta:"சேவையகத்திலிருந்து தவறான பதில் வந்தது.",te:"సర్వర్ నుండి చెల్లని ప్రతిస్పందన వచ్చింది."},
       "Unable to connect to the backend. Please make sure the server is running on port 5000.": {hi:"बैकएंड से कनेक्ट नहीं हो पा रहा है। कृपया सुनिश्चित करें कि सर्वर पोर्ट 5000 पर चल रहा है।",ta:"பின்தளத்துடன் இணைக்க முடியவில்லை. சேவையகம் 5000 போர்ட்டில் இயங்குகிறதா எனச் சரிபார்க்கவும்.",te:"బ్యాకెండ్‌కు కనెక్ట్ కాలేకపోయింది. సర్వర్ 5000 పోర్ట్‌లో నడుస్తోందో లేదో చూసుకోండి."}
+    };
+    Object.entries(primaryLanguageFixes).forEach(([key, values]) => {
+        translations[key] = Object.assign({}, translations[key] || {}, values);
     });
 
     const languageNames = {
