@@ -237,26 +237,34 @@
     }
 
 
+    // Keep each node's original English text so switching languages never
+    // translates an already-translated phrase or leaves old language fragments.
+    const originalTextByNode = new WeakMap();
+    const translationEntries = Object.entries(translations)
+        .filter(([english, values]) => english && values && typeof values === "object")
+        .sort((a, b) => b[0].length - a[0].length);
+
     function translated(original, code) {
         if (code === "en") return original;
-        return translations[original] && translations[original][code] || original;
+        const exact = translations[original];
+        if (exact && exact[code]) return exact[code];
+
+        // For mixed text nodes, replace known English phrases longest-first.
+        let result = original;
+        for (const [english, values] of translationEntries) {
+            const target = values[code];
+            if (!target || english === target || !result.includes(english)) continue;
+            result = result.split(english).join(target);
+        }
+        return result;
     }
 
     function translateTextNode(node, code) {
-        const current = node.nodeValue;
-        if (!current || !current.trim()) return;
-        let result = current;
-        const entries = Object.entries(translations).sort((a, b) => b[0].length - a[0].length);
-        for (const [english, values] of entries) {
-            const target = values[code];
-            if (!target) continue;
-            const sources = [english, ...Object.values(values)].filter(Boolean).sort((a, b) => b.length - a.length);
-            for (const source of sources) {
-                if (source === target) continue;
-                result = result.split(source).join(target);
-            }
-        }
-        if (result !== current) node.nodeValue = result;
+        if (!originalTextByNode.has(node)) originalTextByNode.set(node, node.nodeValue);
+        const original = originalTextByNode.get(node);
+        if (!original || !original.trim()) return;
+        const result = translated(original, code);
+        if (node.nodeValue !== result) node.nodeValue = result;
     }
 
     function applyLanguage(code) {
