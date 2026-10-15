@@ -253,8 +253,7 @@
             const sources = [english, ...Object.values(values)].filter(Boolean).sort((a, b) => b.length - a.length);
             for (const source of sources) {
                 if (source === target) continue;
-                const escaped = source.replace(/[.*+?^{}()|[]\]/g, "\\$&");
-                result = result.replace(new RegExp(escaped, "g"), target);
+                result = result.split(source).join(target);
             }
         }
         if (result !== current) node.nodeValue = result;
