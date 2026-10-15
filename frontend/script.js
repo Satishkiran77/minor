@@ -1607,35 +1607,7 @@ async function validateRegistration() {
 }
 
 
-/* ================= LANGUAGE SELECTION ================= */
-
-const languageSelect =
-    document.getElementById("languageSelect");
-
-if (languageSelect) {
-
-    languageSelect.addEventListener(
-        "change",
-        function () {
-
-            const selectedLanguage =
-                languageSelect.value;
-
-            if (
-                selectedLanguage !== "English"
-            ) {
-
-                alert(
-                    selectedLanguage +
-                    " language support will be connected in the next phase."
-                );
-
-            }
-
-        }
-    );
-
-}
+/* Language switching is handled by language.js. Keep this file focused on auth logic. */
 
 
 /* ================= MOBILE NUMBER ================= */
