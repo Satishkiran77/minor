@@ -261,7 +261,10 @@
 
     function translateTextNode(node, code) {
         if (!originalTextByNode.has(node)) originalTextByNode.set(node, node.nodeValue);
-        const original = originalTextByNode.get(node);
+        const option = node.parentElement && node.parentElement.tagName === "OPTION" ? node.parentElement : null;
+        const original = option && option.dataset.languageOriginalText
+            ? option.dataset.languageOriginalText
+            : originalTextByNode.get(node);
         if (!original || !original.trim()) return;
         const result = translated(original, code);
         if (node.nodeValue !== result) node.nodeValue = result;
@@ -274,17 +277,22 @@
         document.querySelectorAll("input[placeholder], textarea[placeholder]").forEach(el => {
             const original = el.dataset.languageOriginalPlaceholder || el.placeholder;
             if (!el.dataset.languageOriginalPlaceholder) el.dataset.languageOriginalPlaceholder = original;
-            el.placeholder = translated(original, code);
+            const nextPlaceholder = translated(original, code);
+            if (el.placeholder !== nextPlaceholder) el.placeholder = nextPlaceholder;
         });
         document.querySelectorAll("input[aria-label], button[aria-label]").forEach(el => {
             const original = el.dataset.languageOriginalAria || el.getAttribute("aria-label");
             if (!el.dataset.languageOriginalAria) el.dataset.languageOriginalAria = original;
-            el.setAttribute("aria-label", translated(original, code));
+            const nextAria = translated(original, code);
+            if (el.getAttribute("aria-label") !== nextAria) el.setAttribute("aria-label", nextAria);
         });
         document.querySelectorAll("option").forEach(option => {
             const original = option.dataset.languageOriginalText || option.textContent.trim();
             if (!option.dataset.languageOriginalText) option.dataset.languageOriginalText = original;
-            if (!languageNames[original]) option.textContent = translated(original, code);
+            if (!languageNames[original]) {
+                const nextText = translated(original, code);
+                if (option.textContent.trim() !== nextText) option.textContent = nextText;
+            }
         });
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
         const nodes = [];
@@ -293,7 +301,8 @@
         document.querySelectorAll("[title]").forEach(el => {
             const original = el.dataset.languageOriginalTitle || el.getAttribute("title");
             if (!el.dataset.languageOriginalTitle) el.dataset.languageOriginalTitle = original;
-            el.setAttribute("title", translated(original, code));
+            const nextTitle = translated(original, code);
+            if (el.getAttribute("title") !== nextTitle) el.setAttribute("title", nextTitle);
         });
         const select = document.getElementById("languageSelect");
         if (select) {
@@ -316,11 +325,9 @@
         }
         applyLanguage(saved);
         const observer = new MutationObserver(() => {
-            const code = languageCode();
-            const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-            const nodes = [];
-            while (walker.nextNode()) nodes.push(walker.currentNode);
-            nodes.forEach(node => translateTextNode(node, code));
+            // Re-apply to newly inserted cards, dropdown options and dynamic messages.
+            // applyLanguage only writes values that actually changed, preventing loops.
+            applyLanguage(languageCode());
         });
         observer.observe(document.body, { childList: true, subtree: true });
     }
