@@ -451,8 +451,8 @@ app.patch("/api/admin/complaints/:complaintId/status", async (req, res) => {
         }
 
         const result = await new Promise((resolve, reject) => {
-            db.run("UPDATE complaints SET status = ?, updatedAt = CURRENT_TIMESTAMP WHERE complaintId = ?",
-                [status, req.params.complaintId], function (err) {
+            db.run("UPDATE complaints SET status = ?, resolvedAt = CASE WHEN ? = 'Resolved' THEN CURRENT_TIMESTAMP ELSE resolvedAt END, updatedAt = CURRENT_TIMESTAMP WHERE complaintId = ?",
+                [status, status, req.params.complaintId], function (err) {
                     if (err) reject(err);
                     else resolve(this.changes);
                 });
@@ -492,6 +492,38 @@ app.patch("/api/admin/complaints/:complaintId/status", async (req, res) => {
         res.status(500).json({ success: false, message: "Could not update complaint status." });
     }
 });
+
+
+/* ADMIN FEATURE API */
+function adminQuery(sql, params = []) { return new Promise((resolve, reject) => db.all(sql, params, (err, rows) => err ? reject(err) : resolve(rows))); }
+function adminChange(sql, params = []) { return new Promise((resolve, reject) => db.run(sql, params, function(err) { err ? reject(err) : resolve({ changes: this.changes, lastID: this.lastID }); })); }
+async function adminActor(userId) { const rows=await adminQuery("SELECT id,role FROM users WHERE id=?", [userId]); return rows[0] && ["Admin","Officer"].includes(rows[0].role) ? rows[0] : null; }
+async function adminAudit(actor, action, complaintId, details) { await adminChange("INSERT INTO audit_logs (actorUserId,actorRole,action,complaintId,details) VALUES (?,?,?,?,?)", [actor.id,actor.role,action,complaintId||null,details||""]); }
+app.get("/api/admin/analytics", async (req,res) => { try {
+ const actor=await adminActor(req.query.userId); if(!actor) return res.status(403).json({success:false,message:"Admin or Officer access required."});
+ const [totals,categories,monthly,overdue,officerWorkload]=await Promise.all([
+ adminQuery("SELECT COUNT(*) total,SUM(CASE WHEN status IN ('Submitted','Pending','Received','Under Review','Assigned') THEN 1 ELSE 0 END) pending,SUM(CASE WHEN status='In Progress' THEN 1 ELSE 0 END) inProgress,SUM(CASE WHEN status='Resolved' THEN 1 ELSE 0 END) resolved,AVG(CASE WHEN status='Resolved' THEN (julianday(COALESCE(resolvedAt,updatedAt))-julianday(createdAt))*24 END) avgHours FROM complaints"),
+ adminQuery("SELECT category name,COUNT(*) count FROM complaints GROUP BY category ORDER BY count DESC LIMIT 8"),
+ adminQuery("SELECT strftime('%Y-%m',createdAt) month,COUNT(*) count FROM complaints WHERE createdAt>=datetime('now','-5 months') GROUP BY month ORDER BY month"),
+ adminQuery("SELECT COUNT(*) count FROM complaints WHERE status!='Resolved' AND ((dueAt IS NOT NULL AND datetime(dueAt)<datetime('now')) OR (dueAt IS NULL AND julianday('now')-julianday(createdAt)>7))"),
+ adminQuery("SELECT u.id,u.firstName,u.lastName,COUNT(c.id) assignedCount,SUM(CASE WHEN c.status='Resolved' THEN 1 ELSE 0 END) resolvedCount FROM users u LEFT JOIN complaints c ON c.assignedOfficerId=u.id WHERE u.role='Officer' GROUP BY u.id ORDER BY assignedCount DESC")]);
+ res.json({success:true,totals:totals[0]||{},categories,monthly,overdue:overdue[0]?.count||0,officerWorkload});
+ } catch(e) { console.error(e); res.status(500).json({success:false,message:"Could not load analytics."}); } });
+app.get("/api/admin/officers", async (req,res) => { try { const actor=await adminActor(req.query.userId); if(!actor) return res.status(403).json({success:false,message:"Staff access required."}); res.json({success:true,officers:await adminQuery("SELECT id,firstName,lastName,email,mobile,state,district FROM users WHERE role='Officer' ORDER BY firstName,lastName")}); } catch(e) { res.status(500).json({success:false,message:"Could not load officers."}); } });
+app.patch("/api/admin/complaints/:complaintId/assign", async (req,res) => { try {
+ const actor=await adminActor(req.body.userId); if(!actor) return res.status(403).json({success:false,message:"Staff access required."});
+ if(actor.role!=="Admin") return res.status(403).json({success:false,message:"Only Admin can assign officers."});
+ const officerId=req.body.officerId?Number(req.body.officerId):null;
+ if(officerId && !(await adminQuery("SELECT id FROM users WHERE id=? AND role='Officer'",[officerId])).length) return res.status(400).json({success:false,message:"Select a valid officer."});
+ const result=await adminChange("UPDATE complaints SET assignedOfficerId=?,status=CASE WHEN ? IS NOT NULL AND status='Submitted' THEN 'Assigned' ELSE status END,updatedAt=CURRENT_TIMESTAMP WHERE complaintId=?",[officerId,officerId,req.params.complaintId]);
+ if(!result.changes) return res.status(404).json({success:false,message:"Complaint not found."});
+ await adminAudit(actor,officerId?"OFFICER_ASSIGNED":"OFFICER_UNASSIGNED",req.params.complaintId,officerId?"Officer ID "+officerId:"Assignment removed"); res.json({success:true,message:"Officer assignment updated."});
+ } catch(e) { console.error(e); res.status(500).json({success:false,message:"Could not assign officer."}); } });
+app.get("/api/admin/overdue", async (req,res) => { try { const actor=await adminActor(req.query.userId); if(!actor) return res.status(403).json({success:false,message:"Staff access required."}); const complaints=await adminQuery("SELECT complaintId,title,status,priority,state,district,createdAt,dueAt FROM complaints WHERE status!='Resolved' AND ((dueAt IS NOT NULL AND datetime(dueAt)<datetime('now')) OR (dueAt IS NULL AND julianday('now')-julianday(createdAt)>7)) ORDER BY createdAt ASC"); res.json({success:true,complaints}); } catch(e) { res.status(500).json({success:false,message:"Could not load overdue complaints."}); } });
+app.get("/api/admin/users", async (req,res) => { try { const actor=await adminActor(req.query.userId); if(!actor||actor.role!=="Admin") return res.status(403).json({success:false,message:"Admin access required."}); res.json({success:true,users:await adminQuery("SELECT id,role,firstName,lastName,email,mobile,state,district,createdAt FROM users ORDER BY createdAt DESC LIMIT 500")}); } catch(e) { res.status(500).json({success:false,message:"Could not load users."}); } });
+app.get("/api/admin/audit-logs", async (req,res) => { try { const actor=await adminActor(req.query.userId); if(!actor||actor.role!=="Admin") return res.status(403).json({success:false,message:"Admin access required."}); res.json({success:true,logs:await adminQuery("SELECT a.id,a.actorUserId,a.actorRole,a.action,a.complaintId,a.details,a.createdAt,u.firstName,u.lastName FROM audit_logs a LEFT JOIN users u ON u.id=a.actorUserId ORDER BY a.createdAt DESC,a.id DESC LIMIT 100")}); } catch(e) { res.status(500).json({success:false,message:"Could not load audit logs."}); } });
+app.get("/api/admin/feedback", async (req,res) => { try { const actor=await adminActor(req.query.userId); if(!actor||actor.role!=="Admin") return res.status(403).json({success:false,message:"Admin access required."}); res.json({success:true,feedback:await adminQuery("SELECT c.complaintId,c.title,c.feedbackRating,c.feedbackComment,c.updatedAt,u.firstName,u.lastName FROM complaints c LEFT JOIN users u ON u.id=c.userId WHERE c.feedbackRating IS NOT NULL ORDER BY c.updatedAt DESC LIMIT 200")}); } catch(e) { res.status(500).json({success:false,message:"Could not load feedback."}); } });
+app.post("/api/complaints/:complaintId/feedback", async (req,res) => { try { const userId=Number(req.body.userId),rating=Number(req.body.rating); if(!userId||!Number.isInteger(rating)||rating<1||rating>5) return res.status(400).json({success:false,message:"Choose a rating from 1 to 5."}); const result=await adminChange("UPDATE complaints SET feedbackRating=?,feedbackComment=? WHERE complaintId=? AND userId=? AND status='Resolved'",[rating,String(req.body.comment||"").slice(0,1000),req.params.complaintId,userId]); if(!result.changes) return res.status(400).json({success:false,message:"Only the owner of a resolved complaint can submit feedback."}); res.json({success:true,message:"Thank you for your feedback."}); } catch(e) { res.status(500).json({success:false,message:"Could not save feedback."}); } });
 
 const PORT = 5000;
 app.listen(PORT, () => console.log("Server running on port " + PORT));
