@@ -1078,6 +1078,7 @@ const adminComplaintsList = document.getElementById("adminComplaintsList");
 const refreshAdminComplaints = document.getElementById("refreshAdminComplaints");
 
 const isStaffUser = userData && ["Admin", "Officer"].includes(userData.role);
+let adminOfficerOptions = [];
 
 if (isStaffUser && adminComplaintsNav) {
     adminComplaintsNav.hidden = false;
@@ -1093,7 +1094,7 @@ if (isStaffUser && adminComplaintsNav) {
     if (sidebarWelcomeText) sidebarWelcomeText.textContent = "Review and manage citizen complaints";
 
     navItems.forEach(item => {
-        if (!["adminComplaints", "settings"].includes(item.dataset.section)) {
+        if (!["adminOverview", "adminComplaints", "adminOverdue", "settings", ...(userData.role === "Admin" ? ["adminUsers", "adminFeedback", "adminAudit"] : [])].includes(item.dataset.section)) {
             item.hidden = true;
             item.style.display = "none";
         } else {
@@ -1103,7 +1104,7 @@ if (isStaffUser && adminComplaintsNav) {
     });
 
     sections.forEach(section => {
-        if (!["adminComplaints", "settings"].includes(section.id)) {
+        if (!["adminOverview", "adminComplaints", "adminOverdue", "settings", ...(userData.role === "Admin" ? ["adminUsers", "adminFeedback", "adminAudit"] : [])].includes(section.id)) {
             section.classList.remove("active-section");
             section.hidden = true;
             section.style.display = "none";
@@ -1122,6 +1123,8 @@ if (isStaffUser && adminComplaintsNav) {
         const staffSection = document.getElementById("adminComplaints");
         if (staffSection) staffSection.classList.add("active-section");
     }
+    ["adminOverviewNav","adminOverdueNav"].forEach(id => { const el=document.getElementById(id); if(el) el.hidden=false; });
+    if (userData.role === "Admin") ["adminUsersNav","adminFeedbackNav","adminAuditNav"].forEach(id => { const el=document.getElementById(id); if(el) el.hidden=false; });
 }
 
 async function loadAdminComplaints() {
@@ -1149,11 +1152,12 @@ async function loadAdminComplaints() {
         }
 
         const statusOptions = ["Submitted", "Received", "Under Review", "Assigned", "In Progress", "Resolved"];
+        if (userData.role === "Admin") { try { const r=await fetch(API_BASE_URL+"/api/admin/officers?userId="+encodeURIComponent(userData.id)); const d=await r.json(); adminOfficerOptions=d.success?d.officers:[]; } catch (_) { adminOfficerOptions=[]; } }
         adminComplaintsList.innerHTML = `
             <div class="cases-table-wrap">
                 <table class="cases-table">
                     <thead><tr>
-                        <th>Complaint ID</th><th>Citizen</th><th>Complaint</th><th>Location</th><th>Priority</th><th>Status</th><th>Update</th>
+                        <th>Complaint ID</th><th>Citizen</th><th>Complaint</th><th>Location</th><th>Priority</th><th>Status</th>${userData.role === "Admin" ? "<th>Assign Officer</th>" : ""}<th>Update</th>
                     </tr></thead>
                     <tbody>
                         ${data.complaints.map(item => `
@@ -1164,6 +1168,7 @@ async function loadAdminComplaints() {
                                 <td>${item.location || [item.villageCity, item.district, item.pincode].filter(Boolean).join(", ") || "-"}</td>
                                 <td>${item.priority || "Normal"}</td>
                                 <td><span class="status-badge">${item.status || "Submitted"}</span></td>
+                                ${userData.role === "Admin" ? `<td><select class="admin-officer-select" data-complaint-id="${item.complaintId}"><option value="">Unassigned</option>${adminOfficerOptions.map(officer => `<option value="${officer.id}" ${String(officer.id) === String(item.assignedOfficerId || "") ? "selected" : ""}>${officer.firstName} ${officer.lastName}</option>`).join("")}</select><button class="primary-btn admin-assign-officer" data-complaint-id="${item.complaintId}">Assign</button></td>` : ""}
                                 <td>
                                     <select class="admin-status-select" data-complaint-id="${item.complaintId}" aria-label="Status for ${item.complaintId}">
                                         ${statusOptions.map(status => `<option value="${status}" ${status === item.status ? "selected" : ""}>${status}</option>`).join("")}
