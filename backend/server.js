@@ -427,7 +427,7 @@ app.get("/api/admin/complaints", async (req, res) => {
         }
 
         const complaints = await new Promise((resolve, reject) => {
-            db.all("SELECT c.id, c.complaintId, c.category, c.subCategory, c.title, c.description, c.state, c.district, c.villageCity, c.nearestTown, c.pincode, c.streetArea, c.latitude, c.longitude, c.location, c.status, c.priority, c.createdAt, c.updatedAt, u.firstName, u.lastName, u.email, u.mobile FROM complaints c LEFT JOIN users u ON u.id = c.userId ORDER BY c.createdAt DESC",
+            db.all("SELECT c.id, c.complaintId, c.category, c.subCategory, c.title, c.description, c.state, c.district, c.villageCity, c.nearestTown, c.pincode, c.streetArea, c.latitude, c.longitude, c.location, c.status, c.priority, c.assignedOfficerId, c.dueAt, c.feedbackRating, c.feedbackComment, c.createdAt, c.updatedAt, u.firstName, u.lastName, u.email, u.mobile FROM complaints c LEFT JOIN users u ON u.id = c.userId ORDER BY c.createdAt DESC",
                 [], (err, rows) => err ? reject(err) : resolve(rows));
         });
         res.json({ success: true, complaints });
