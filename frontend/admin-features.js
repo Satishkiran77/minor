@@ -4,7 +4,7 @@
  if(!user||!["Admin","Officer"].includes(user.role)) return;
  const $=id=>document.getElementById(id);
  const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
- const get=async(path)=>{const r=await fetch(API+path);const d=await r.json();if(!r.ok||!d.success)throw Error(d.message||"Request failed");return d;};
+ const get=async(path)=>{const r=await fetch(API+path,{headers:{"Accept":"application/json"}});const raw=await r.text();let d;try{d=JSON.parse(raw);}catch(_){const preview=raw.slice(0,100).replace(/\s+/g," ");throw Error("API response JSON kaadu (HTTP "+r.status+"). Backend URL: "+API+path+". Backend restart/latest code check cheyyandi. Response: "+preview);}if(!r.ok||!d.success)throw Error(d.message||("Request failed (HTTP "+r.status+")"));return d;};
  const showTable=(target,headers,rows)=>{const el=$(target);if(!el)return;el.innerHTML=rows.length?'<div class="cases-table-wrap"><table class="admin-table"><thead><tr>'+headers.map(h=>'<th>'+esc(h)+'</th>').join("")+'</tr></thead><tbody>'+rows.map(row=>'<tr>'+row.map(v=>'<td>'+v+'</td>').join("")+'</tr>').join("")+'</tbody></table></div>':'<p class="empty-state">No records found.</p>';};
  async function analytics(){try{const d=await get('/api/admin/analytics?userId='+encodeURIComponent(user.id));const t=d.totals||{};if($("adminAnalyticsMessage"))$("adminAnalyticsMessage").textContent="Live data from JanSeva database.";
  const cards=[["Total Complaints",t.total||0],["Pending / Review",t.pending||0],["In Progress",t.inProgress||0],["Resolved",t.resolved||0],["Overdue",d.overdue||0],["Avg. Resolution",t.avgHours==null?"—":Number(t.avgHours).toFixed(1)+" hrs"]];
