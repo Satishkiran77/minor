@@ -70,10 +70,7 @@
                     <span>Track Complaint</span>
                 </button>
 
-                <button class="nav-item" data-section="adminComplaints" id="adminComplaintsNav" hidden>
-                    🛠️
-                    <span>Manage Complaints</span>
-                </button>
+                <button class="nav-item" data-section="adminOverview" id="adminOverviewNav" hidden>📊 <span>Analytics</span></button><button class="nav-item" data-section="adminComplaints" id="adminComplaintsNav" hidden>🛠️ <span>Manage Complaints</span></button><button class="nav-item" data-section="adminOverdue" id="adminOverdueNav" hidden>⏰ <span>Overdue Cases</span></button><button class="nav-item" data-section="adminUsers" id="adminUsersNav" hidden>👥 <span>User Management</span></button><button class="nav-item" data-section="adminFeedback" id="adminFeedbackNav" hidden>⭐ <span>Citizen Feedback</span></button><button class="nav-item" data-section="adminAudit" id="adminAuditNav" hidden>📋 <span>Audit Logs</span></button>
 
                 <button class="nav-item" data-section="myCases">
                     📁
@@ -644,13 +641,15 @@
                     </div>
                     <button class="primary-btn" id="refreshAdminComplaints">Refresh</button>
                 </div>
-                <div class="panel">
-                    <div id="adminAccessMessage" role="status">Checking staff access...</div>
-                    <div id="adminComplaintsList"></div>
-                </div>
+                <div class="panel"><div class="admin-toolbar"><input id="adminComplaintSearch" type="search" placeholder="Search ID, citizen, title or location"><select id="adminStatusFilter"><option value="">All statuses</option><option>Submitted</option><option>Received</option><option>Under Review</option><option>Assigned</option><option>In Progress</option><option>Resolved</option></select><select id="adminPriorityFilter"><option value="">All priorities</option><option>Normal</option><option>Important</option><option>Urgent</option></select><button class="primary-btn" id="exportAdminComplaints">Export CSV</button></div><div id="adminAccessMessage" role="status">Checking staff access...</div><div id="adminComplaintsList"></div></div>
             </section>
 
-            <section id="settings" class="content-section">
+
+<section id="adminOverview" class="content-section"><div class="page-heading"><div><span class="page-label">JANSEVA INSIGHTS</span><h1>Analytics Dashboard</h1><p>Complaint trends and service performance.</p></div><button class="primary-btn" id="refreshAdminAnalytics">Refresh</button></div><div id="adminAnalyticsMessage" role="status"></div><div class="stats-grid" id="adminAnalyticsCards"></div><div class="admin-insights-grid"><div class="panel"><h3>Complaints by Category</h3><div id="adminCategoryStats"></div></div><div class="panel"><h3>Monthly Complaint Trend</h3><div id="adminMonthlyStats"></div></div><div class="panel"><h3>Officer Workload</h3><div id="adminOfficerWorkload"></div></div></div></section>
+<section id="adminOverdue" class="content-section"><div class="page-heading"><div><span class="page-label">ESCALATION</span><h1>Overdue Complaints</h1><p>Open complaints older than seven days or past a due date.</p></div><button class="primary-btn" id="refreshAdminOverdue">Refresh</button></div><div class="panel"><div id="adminOverdueList"></div></div></section>
+<section id="adminUsers" class="content-section"><div class="page-heading"><div><span class="page-label">ADMIN ONLY</span><h1>User Management</h1><p>Registered accounts. Passwords are never displayed.</p></div><button class="primary-btn" id="refreshAdminUsers">Refresh</button></div><div class="panel"><div id="adminUsersList"></div></div></section>
+<section id="adminFeedback" class="content-section"><div class="page-heading"><div><span class="page-label">SERVICE QUALITY</span><h1>Citizen Feedback</h1><p>Ratings and comments on resolved complaints.</p></div><button class="primary-btn" id="refreshAdminFeedback">Refresh</button></div><div class="panel"><div id="adminFeedbackList"></div></div></section>
+<section id="adminAudit" class="content-section"><div class="page-heading"><div><span class="page-label">ADMIN ONLY</span><h1>Audit Logs</h1><p>Recent recorded management actions.</p></div><button class="primary-btn" id="refreshAdminAudit">Refresh</button></div><div class="panel"><div id="adminAuditList"></div></div></section>            <section id="settings" class="content-section">
 
                 <div class="page-heading">
                     <div>
@@ -696,7 +695,7 @@
 
 
     <script src="language.js?v=20261015-translation-merge-fix"></script>
-    <script src="citizen-dashboard.js?v=20261015-hi-ta-te-fix"></script>
+    <script src="citizen-dashboard.js?v=20261024-admin-features"></script><script src="admin-features.js?v=20261024-admin-features"></script>
 
 </body>
 </html>
