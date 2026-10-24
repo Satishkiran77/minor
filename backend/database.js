@@ -33,7 +33,12 @@ const complaintColumns = [
     ["streetArea", "TEXT"],
     ["latitude", "TEXT"],
     ["longitude", "TEXT"],
-    ["evidencePhotos", "TEXT"]
+    ["evidencePhotos", "TEXT"],
+    ["assignedOfficerId", "INTEGER"],
+    ["dueAt", "DATETIME"],
+    ["feedbackRating", "INTEGER"],
+    ["feedbackComment", "TEXT"],
+    ["resolvedAt", "DATETIME"]
 ];
 
 complaintColumns.forEach(([column, type]) => {
@@ -44,4 +49,8 @@ complaintColumns.forEach(([column, type]) => {
     });
 });
 
+db.run("CREATE TABLE IF NOT EXISTS audit_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, actorUserId INTEGER, actorRole TEXT, action TEXT NOT NULL, complaintId TEXT, details TEXT, createdAt DATETIME DEFAULT CURRENT_TIMESTAMP)", (err) => {
+    if (err) console.error("Audit logs table creation failed:", err.message);
+    else console.log("Audit logs table ready.");
+});
 module.exports = db;
