@@ -1115,3 +1115,31 @@ body {
 @media (prefers-reduced-motion: reduce) {
     *,*::before,*::after { scroll-behavior: auto !important; transition: none !important; }
 }
+
+
+/* Responsive polish: small screens and translated labels */
+@media (max-width: 760px) {
+  .header { min-height: 68px; height: auto; gap: 12px; flex-wrap: wrap; padding: 12px 16px; }
+  .header .language { margin-left: auto; }
+  .login-page { min-height: auto; flex-direction: column; align-items: stretch; gap: 28px; padding: 34px 16px 42px; }
+  .intro-section { width: 100%; max-width: 100%; text-align: center; }
+  .intro-section h1 { font-size: clamp(34px, 9vw, 48px); letter-spacing: -1.2px; overflow-wrap: anywhere; }
+  .intro-section h2 { font-size: clamp(21px, 5vw, 28px); }
+  .intro-section > p { font-size: 15px; line-height: 1.7; }
+  .features { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+  .feature { min-width: 112px; flex: 1 1 112px; max-width: 170px; padding: 12px 8px; }
+  .login-card { width: 100%; max-width: 520px; margin-inline: auto; border-radius: 20px; }
+  .role-tabs { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .role { min-width: 0; padding: 10px 4px; font-size: 13px; overflow-wrap: anywhere; }
+  .login-content { padding: 24px 18px; }
+  .login-content h2 { font-size: 25px; }
+  .login-content input { width: 100%; min-width: 0; box-sizing: border-box; }
+  .login-button,.register-button,.guide-button { width: 100%; }
+  .registration-form { width: 100%; box-sizing: border-box; }
+}
+@media (max-width: 380px) {
+  .brand h2 { font-size: 18px; }
+  .logo-icon { flex-shrink: 0; }
+  .role { font-size: 11px; }
+  .login-content { padding: 20px 14px; }
+}
