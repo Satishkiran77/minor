@@ -1931,3 +1931,37 @@ button:focus-visible,a:focus-visible,select:focus-visible {
 @media (prefers-reduced-motion: reduce) {
     *,*::before,*::after { transition: none !important; }
 }
+
+
+/* Responsive polish for citizen, officer and admin workspaces */
+.topbar { position: sticky; top: 0; z-index: 20; }
+.topbar::after { pointer-events: none; }
+.dashboard-layout { min-width: 0; }
+.main-content,.sidebar,.panel,.form-panel,.track-panel { min-width: 0; }
+.cases-table-wrap { max-width: 100%; overflow-x: auto; }
+.cases-table { min-width: 760px; }
+.admin-status-select { max-width: 100%; min-width: 130px; }
+button,select,input,textarea { max-width: 100%; }
+@media (max-width: 760px) {
+  .topbar { flex-wrap: wrap; gap: 10px; padding: 12px 14px; }
+  .top-actions { flex-wrap: wrap; gap: 8px; }
+  .dashboard-layout { display: flex; flex-direction: column; padding: 12px; gap: 14px; }
+  .sidebar { width: 100%; box-sizing: border-box; position: static; }
+  .sidebar .nav-item { margin: 3px 6px; }
+  .main-content { width: 100%; }
+  .stats-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+  .stat-card,.panel,.form-panel,.track-panel,.settings-panel,.placeholder-panel { border-radius: 16px; }
+  .page-heading h1 { font-size: clamp(23px,6vw,32px); overflow-wrap: anywhere; }
+  .form-grid,.form-row { grid-template-columns: minmax(0,1fr) !important; }
+  .form-group { min-width: 0; }
+  .form-group input,.form-group select,.form-group textarea { width: 100%; box-sizing: border-box; }
+  .form-actions { flex-wrap: wrap; }
+  .form-actions button { flex: 1 1 150px; }
+  .welcome-box { padding: 20px !important; }
+}
+@media (max-width: 420px) {
+  .stats-grid { grid-template-columns: minmax(0,1fr); }
+  .topbar .logo h2 { font-size: 18px; }
+  .dashboard-layout { padding: 8px; }
+  .panel-header { flex-wrap: wrap; gap: 8px; }
+}
