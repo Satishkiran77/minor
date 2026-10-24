@@ -78,14 +78,25 @@ navItems.forEach(function (item) {
 
         item.classList.add("active");
 
+        const staffMode = userData && ["Admin", "Officer"].includes(userData.role);
+
         sections.forEach(function (section) {
             section.classList.remove("active-section");
+
+            if (staffMode) {
+                section.hidden = true;
+                section.style.display = "none";
+            } else {
+                section.hidden = false;
+                section.style.display = "";
+            }
         });
 
-        const selectedSection =
-            document.getElementById(sectionName);
+        const selectedSection = document.getElementById(sectionName);
 
         if (selectedSection) {
+            selectedSection.hidden = false;
+            selectedSection.style.display = staffMode ? "block" : "";
             selectedSection.classList.add("active-section");
         }
 
