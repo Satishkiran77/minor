@@ -1067,22 +1067,6 @@ function showRegistrationForm() {
     }
 
 
-    const registerRole =
-        document.getElementById("registerRole");
-
-    if (registerRole) {
-
-        if (
-            selectedRole === "Citizen" ||
-            selectedRole === "Officer"
-        ) {
-
-            registerRole.value = selectedRole;
-
-        }
-
-    }
-
 
     initializeRegistration();
 
@@ -1323,8 +1307,8 @@ function initializeRegistration() {
 
 async function validateRegistration() {
 
-    const role =
-        document.getElementById("registerRole").value.trim();
+    // Public self-registration can create Citizen accounts only.
+    const role = "Citizen";
 
     const firstName =
         document.getElementById("firstName").value.trim();
@@ -1352,17 +1336,6 @@ async function validateRegistration() {
 
     const terms =
         document.getElementById("terms").checked;
-
-
-    /* ================= ROLE ================= */
-
-    if (role === "") {
-
-        alert("Please select your role.");
-
-        return;
-
-    }
 
 
     /* ================= NAME ================= */
