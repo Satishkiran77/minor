@@ -426,9 +426,16 @@ app.get("/api/admin/complaints", async (req, res) => {
             return res.status(403).json({ success: false, message: "Admin or Officer access required." });
         }
 
+        // Officers share the incoming complaint queue; Admin assignment is not required.
+        const complaintFilter = "";
+        const complaintParams = [];
         const complaints = await new Promise((resolve, reject) => {
-            db.all("SELECT c.id, c.complaintId, c.category, c.subCategory, c.title, c.description, c.state, c.district, c.villageCity, c.nearestTown, c.pincode, c.streetArea, c.latitude, c.longitude, c.location, c.status, c.priority, c.assignedOfficerId, c.dueAt, c.feedbackRating, c.feedbackComment, c.createdAt, c.updatedAt, u.firstName, u.lastName, u.email, u.mobile FROM complaints c LEFT JOIN users u ON u.id = c.userId ORDER BY c.createdAt DESC",
-                [], (err, rows) => err ? reject(err) : resolve(rows));
+            db.all("SELECT c.id, c.complaintId, c.category, c.subCategory, c.title, c.description, c.state, c.district, c.villageCity, c.nearestTown, c.pincode, c.streetArea, c.latitude, c.longitude, c.location, c.status, c.priority, c.evidencePhotos, c.assignedOfficerId, c.dueAt, c.feedbackRating, c.feedbackComment, c.createdAt, c.updatedAt, u.firstName, u.lastName, u.email, u.mobile FROM complaints c LEFT JOIN users u ON u.id = c.userId" + complaintFilter + " ORDER BY c.createdAt DESC",
+                complaintParams, (err, rows) => err ? reject(err) : resolve(rows));
+        });
+        complaints.forEach(complaint => {
+            try { complaint.evidencePhotos = JSON.parse(complaint.evidencePhotos || "[]"); }
+            catch (_) { complaint.evidencePhotos = []; }
         });
         res.json({ success: true, complaints });
     } catch (error) {
@@ -444,6 +451,7 @@ app.patch("/api/admin/complaints/:complaintId/status", async (req, res) => {
             return res.status(403).json({ success: false, message: "Admin or Officer access required." });
         }
 
+        // Officers can update complaints in the shared incoming queue without prior assignment.
         const allowedStatuses = ["Submitted", "Received", "Under Review", "Assigned", "In Progress", "Resolved"];
         const status = String(req.body.status || "");
         if (!allowedStatuses.includes(status)) {
@@ -500,7 +508,7 @@ function adminChange(sql, params = []) { return new Promise((resolve, reject) =>
 async function adminActor(userId) { const rows=await adminQuery("SELECT id,role FROM users WHERE id=?", [userId]); return rows[0] && ["Admin","Officer"].includes(rows[0].role) ? rows[0] : null; }
 async function adminAudit(actor, action, complaintId, details) { await adminChange("INSERT INTO audit_logs (actorUserId,actorRole,action,complaintId,details) VALUES (?,?,?,?,?)", [actor.id,actor.role,action,complaintId||null,details||""]); }
 app.get("/api/admin/analytics", async (req,res) => { try {
- const actor=await adminActor(req.query.userId); if(!actor) return res.status(403).json({success:false,message:"Admin or Officer access required."});
+ const actor=await adminActor(req.query.userId); if(!actor||actor.role!=="Admin") return res.status(403).json({success:false,message:"Admin access required."});
  const [totals,categories,monthly,overdue,officerWorkload]=await Promise.all([
  adminQuery("SELECT COUNT(*) total,SUM(CASE WHEN status IN ('Submitted','Pending','Received','Under Review','Assigned') THEN 1 ELSE 0 END) pending,SUM(CASE WHEN status='In Progress' THEN 1 ELSE 0 END) inProgress,SUM(CASE WHEN status='Resolved' THEN 1 ELSE 0 END) resolved,AVG(CASE WHEN status='Resolved' THEN (julianday(COALESCE(resolvedAt,updatedAt))-julianday(createdAt))*24 END) avgHours FROM complaints"),
  adminQuery("SELECT category name,COUNT(*) count FROM complaints GROUP BY category ORDER BY count DESC LIMIT 8"),
@@ -509,7 +517,7 @@ app.get("/api/admin/analytics", async (req,res) => { try {
  adminQuery("SELECT u.id,u.firstName,u.lastName,COUNT(c.id) assignedCount,SUM(CASE WHEN c.status='Resolved' THEN 1 ELSE 0 END) resolvedCount FROM users u LEFT JOIN complaints c ON c.assignedOfficerId=u.id WHERE u.role='Officer' GROUP BY u.id ORDER BY assignedCount DESC")]);
  res.json({success:true,totals:totals[0]||{},categories,monthly,overdue:overdue[0]?.count||0,officerWorkload});
  } catch(e) { console.error(e); res.status(500).json({success:false,message:"Could not load analytics."}); } });
-app.get("/api/admin/officers", async (req,res) => { try { const actor=await adminActor(req.query.userId); if(!actor) return res.status(403).json({success:false,message:"Staff access required."}); res.json({success:true,officers:await adminQuery("SELECT id,firstName,lastName,email,mobile,state,district FROM users WHERE role='Officer' ORDER BY firstName,lastName")}); } catch(e) { res.status(500).json({success:false,message:"Could not load officers."}); } });
+app.get("/api/admin/officers", async (req,res) => { try { const actor=await adminActor(req.query.userId); if(!actor||actor.role!=="Admin") return res.status(403).json({success:false,message:"Admin access required."}); res.json({success:true,officers:await adminQuery("SELECT id,firstName,lastName,email,mobile,state,district FROM users WHERE role='Officer' ORDER BY firstName,lastName")}); } catch(e) { res.status(500).json({success:false,message:"Could not load officers."}); } });
 app.patch("/api/admin/complaints/:complaintId/assign", async (req,res) => { try {
  const actor=await adminActor(req.body.userId); if(!actor) return res.status(403).json({success:false,message:"Staff access required."});
  if(actor.role!=="Admin") return res.status(403).json({success:false,message:"Only Admin can assign officers."});

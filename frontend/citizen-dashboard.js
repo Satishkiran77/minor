@@ -65,12 +65,21 @@ if (userData) {
 
 const navItems = document.querySelectorAll(".nav-item");
 const sections = document.querySelectorAll(".content-section");
-
+const allowedSectionsByRole = {
+    Citizen: ["dashboard", "newComplaint", "track", "myCases", "notifications", "profile"],
+    Officer: ["staffDashboard", "adminComplaints", "adminOverdue", "notifications", "profile"],
+    Admin: ["staffDashboard", "adminOverview", "adminComplaints", "adminOverdue", "adminUsers", "adminFeedback", "adminAudit", "notifications", "profile"]
+};
+const allowedSections = allowedSectionsByRole[userData?.role] || [];
+navItems.forEach(item => {
+    const visible = allowedSections.includes(item.dataset.section);
+    item.hidden = !visible;
+    item.style.display = visible ? "" : "none";
+});
 navItems.forEach(function (item) {
-
     item.addEventListener("click", function () {
-
         const sectionName = item.dataset.section;
+        if (!allowedSections.includes(sectionName)) return;
 
         navItems.forEach(function (nav) {
             nav.classList.remove("active");
@@ -112,7 +121,7 @@ navItems.forEach(function (item) {
 /* ================= NEW COMPLAINT BUTTONS ================= */
 
 function openNewComplaint() {
-
+    if (!userData || userData.role !== "Citizen") return;
     navItems.forEach(function (nav) {
         nav.classList.remove("active");
     });
@@ -172,29 +181,9 @@ document.querySelectorAll(".text-btn").forEach(function (button) {
 
         if (!sectionName) return;
 
-        navItems.forEach(function (nav) {
-            nav.classList.remove("active");
-        });
-
-        const targetNav =
-            document.querySelector(
-                `[data-section="${sectionName}"]`
-            );
-
-        if (targetNav) {
-            targetNav.classList.add("active");
-        }
-
-        sections.forEach(function (section) {
-            section.classList.remove("active-section");
-        });
-
-        const targetSection =
-            document.getElementById(sectionName);
-
-        if (targetSection) {
-            targetSection.classList.add("active-section");
-        }
+        if (!allowedSections.includes(sectionName)) return;
+        const targetNav = document.querySelector(`.nav-item[data-section="${sectionName}"]`);
+        if (targetNav && !targetNav.hidden) targetNav.click();
 
     });
 
@@ -967,7 +956,7 @@ function displayNotificationDate(value) {
 }
 
 async function loadNotifications() {
-    if (!userData || userData.role !== "Citizen") return;
+    if (!userData || !["Citizen", "Officer", "Admin"].includes(userData.role)) return;
     if (notificationSummary) notificationSummary.textContent = "Loading notifications...";
     if (notificationsList) notificationsList.innerHTML = "";
 
@@ -1048,7 +1037,7 @@ if (headerNotificationBtn) {
 
 if (markAllNotificationsReadBtn) {
     markAllNotificationsReadBtn.addEventListener("click", async () => {
-        if (!userData || userData.role !== "Citizen") return;
+        if (!userData || !["Citizen", "Officer", "Admin"].includes(userData.role)) return;
         markAllNotificationsReadBtn.disabled = true;
         try {
             const response = await fetch(API_BASE_URL + "/api/notifications/read-all", {
@@ -1081,50 +1070,63 @@ const isStaffUser = userData && ["Admin", "Officer"].includes(userData.role);
 let adminOfficerOptions = [];
 
 if (isStaffUser && adminComplaintsNav) {
-    adminComplaintsNav.hidden = false;
-
-    document.title = (userData.role === "Admin" ? "Admin Workspace" : "Officer Workspace") + " | JanSeva Portal";
-
+    const role = userData.role;
     const portalRoleLabel = document.getElementById("portalRoleLabel");
     const profileRoleLabel = document.getElementById("profileRoleLabel");
     const sidebarWelcomeText = document.getElementById("sidebarWelcomeText");
-
-    if (portalRoleLabel) portalRoleLabel.textContent = userData.role + " Workspace";
-    if (profileRoleLabel) profileRoleLabel.textContent = userData.role;
-    if (sidebarWelcomeText) sidebarWelcomeText.textContent = "Review and manage citizen complaints";
-
+    const staffDashboardName = document.getElementById("staffDashboardName");
+    const staffDashboardRole = document.getElementById("staffDashboardRole");
+    const staffDashboardIntro = document.getElementById("staffDashboardIntro");
+    document.title = role + " Workspace | JanSeva Portal";
+    if (portalRoleLabel) portalRoleLabel.textContent = role + " Workspace";
+    if (profileRoleLabel) profileRoleLabel.textContent = role;
+    if (sidebarWelcomeText) sidebarWelcomeText.textContent = role === "Admin" ? "Manage the portal and monitor public services" : "Review and update citizen complaints";
+    if (staffDashboardName) staffDashboardName.textContent = userData.firstName || role;
+    if (staffDashboardRole) staffDashboardRole.textContent = role.toUpperCase() + " DASHBOARD";
+    if (staffDashboardIntro) staffDashboardIntro.textContent = role === "Admin" ? "Monitor portal activity and manage citizen services." : "View all citizen complaints and follow up on pending work.";
+    const roleNavIds = role === "Admin"
+        ? ["staffDashboardNav", "adminOverviewNav", "adminComplaintsNav", "adminOverdueNav", "adminUsersNav", "adminFeedbackNav", "adminAuditNav", "notificationsNav", "profileNav"]
+        : ["staffDashboardNav", "adminComplaintsNav", "adminOverdueNav", "notificationsNav", "profileNav"];
     navItems.forEach(item => {
-        if (!["adminOverview", "adminComplaints", "adminOverdue", "settings", ...(userData.role === "Admin" ? ["adminUsers", "adminFeedback", "adminAudit"] : [])].includes(item.dataset.section)) {
-            item.hidden = true;
-            item.style.display = "none";
-        } else {
-            item.hidden = false;
-            item.style.display = "";
-        }
+        const visible = roleNavIds.includes(item.id);
+        item.hidden = !visible;
+        item.style.display = visible ? "" : "none";
+        item.classList.toggle("active", item.id === "staffDashboardNav");
     });
-
     sections.forEach(section => {
-        if (!["adminOverview", "adminComplaints", "adminOverdue", "settings", ...(userData.role === "Admin" ? ["adminUsers", "adminFeedback", "adminAudit"] : [])].includes(section.id)) {
-            section.classList.remove("active-section");
-            section.hidden = true;
-            section.style.display = "none";
-        } else {
-            section.hidden = false;
-            section.style.display = section.id === "adminComplaints" ? "block" : "none";
-        }
+        const visible = allowedSections.includes(section.id);
+        section.hidden = !visible;
+        section.style.display = visible ? (section.id === "staffDashboard" ? "block" : "none") : "none";
+        section.classList.toggle("active-section", section.id === "staffDashboard");
     });
-
-    const staffHeading = document.querySelector("#adminComplaints .page-heading .page-label");
-    if (staffHeading) staffHeading.textContent = userData.role.toUpperCase() + " WORKSPACE";
-
-    if (adminComplaintsNav) {
-        navItems.forEach(item => item.classList.remove("active"));
-        adminComplaintsNav.classList.add("active");
-        const staffSection = document.getElementById("adminComplaints");
-        if (staffSection) staffSection.classList.add("active-section");
+}
+async function loadStaffDashboard() {
+    if (!isStaffUser) return;
+    const message = document.getElementById("staffDashboardMessage");
+    const cards = document.getElementById("staffDashboardCards");
+    if (message) message.textContent = "Loading your work summary...";
+    try {
+        const [complaintResponse, overdueResponse] = await Promise.all([
+            fetch(API_BASE_URL + "/api/admin/complaints?userId=" + encodeURIComponent(userData.id)),
+            fetch(API_BASE_URL + "/api/admin/overdue?userId=" + encodeURIComponent(userData.id))
+        ]);
+        const complaintData = await complaintResponse.json();
+        const overdueData = await overdueResponse.json();
+        if (!complaintResponse.ok || !complaintData.success) throw new Error(complaintData.message || "Could not load complaints.");
+        if (!overdueResponse.ok || !overdueData.success) throw new Error(overdueData.message || "Could not load overdue cases.");
+        const complaints = complaintData.complaints || [];
+        const pending = complaints.filter(item => ["Submitted", "Pending", "Received", "Under Review", "Assigned"].includes(item.status)).length;
+        const inProgress = complaints.filter(item => item.status === "In Progress").length;
+        const overdue = (overdueData.complaints || []).length;
+        if (cards) {
+            const firstLabel = "All Complaints";
+            cards.innerHTML = [[firstLabel, complaints.length], ["Pending", pending], ["In Progress", inProgress], ["Overdue", overdue]]
+                .map(([label, value]) => '<div class="stat-card"><div><span>' + label + '</span><h2>' + value + '</h2></div></div>').join("");
+        }
+        if (message) message.textContent = userData.role === "Admin" ? "Portal-wide complaint summary loaded." : "Summary of all citizen complaints.";
+    } catch (error) {
+        if (message) message.textContent = error.message || "Could not load your work summary.";
     }
-    ["adminOverviewNav","adminOverdueNav"].forEach(id => { const el=document.getElementById(id); if(el) el.hidden=false; });
-    if (userData.role === "Admin") ["adminUsersNav","adminFeedbackNav","adminAuditNav"].forEach(id => { const el=document.getElementById(id); if(el) el.hidden=false; });
 }
 
 async function loadAdminComplaints() {
@@ -1157,7 +1159,7 @@ async function loadAdminComplaints() {
             <div class="cases-table-wrap">
                 <table class="cases-table">
                     <thead><tr>
-                        <th>Complaint ID</th><th>Citizen</th><th>Complaint</th><th>Location</th><th>Priority</th><th>Status</th>${userData.role === "Admin" ? "<th>Assign Officer</th>" : ""}<th>Update</th>
+                        <th>Complaint ID</th><th>Citizen</th><th>Complaint</th><th>Location</th><th>Evidence & GPS</th><th>Priority</th><th>Status</th>${userData.role === "Admin" ? "<th>Assign Officer</th>" : ""}<th>Update</th>
                     </tr></thead>
                     <tbody>
                         ${data.complaints.map(item => `
@@ -1166,6 +1168,14 @@ async function loadAdminComplaints() {
                                 <td>${item.firstName || ""} ${item.lastName || ""}<br><small>${item.mobile || item.email || ""}</small></td>
                                 <td>${item.title}<br><small>${item.category} · ${item.subCategory || "General"}</small><br><small>${item.description}</small></td>
                                 <td>${item.location || [item.villageCity, item.district, item.pincode].filter(Boolean).join(", ") || "-"}</td>
+                                <td>
+                                    ${Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)) && item.latitude !== "" && item.longitude !== ""
+                                        ? '<a href="https://www.google.com/maps?q=' + encodeURIComponent(String(item.latitude) + "," + String(item.longitude)) + '" target="_blank" rel="noopener noreferrer">📍 Open complaint location</a><br><small>' + item.latitude + ", " + item.longitude + "</small>"
+                                        : "GPS location unavailable"}
+                                    ${(Array.isArray(item.evidencePhotos) && item.evidencePhotos.length)
+                                        ? '<div class="complaint-evidence-preview">' + item.evidencePhotos.map((photo, index) => photo && ["image/jpeg", "image/png", "image/webp"].includes(photo.type) && typeof photo.data === "string" && photo.data.startsWith("data:" + photo.type + ";base64,") ? '<a href="' + photo.data + '" target="_blank" rel="noopener noreferrer">View photo ' + (index + 1) + "</a>" : "").filter(Boolean).join(" · ") + "</div>"
+                                        : "<br><small>No photo evidence</small>"}
+                                </td>
                                 <td>${item.priority || "Normal"}</td>
                                 <td><span class="status-badge">${item.status || "Submitted"}</span></td>
                                 ${userData.role === "Admin" ? `<td><select class="admin-officer-select" data-complaint-id="${item.complaintId}"><option value="">Unassigned</option>${adminOfficerOptions.map(officer => `<option value="${officer.id}" ${String(officer.id) === String(item.assignedOfficerId || "") ? "selected" : ""}>${officer.firstName} ${officer.lastName}</option>`).join("")}</select><button class="primary-btn admin-assign-officer" data-complaint-id="${item.complaintId}">Assign</button></td>` : ""}
@@ -1199,7 +1209,8 @@ async function loadAdminComplaints() {
                     if (!updateResponse.ok || !updateData.success) throw new Error(updateData.message || "Status update failed.");
                     if (adminAccessMessage) adminAccessMessage.textContent = complaintId + " status updated to " + select.value + ".";
                     await loadAdminComplaints();
-                    await loadDashboardData();
+                    if (isStaffUser) await loadStaffDashboard();
+                    else await loadDashboardData();
                 } catch (error) {
                     if (adminAccessMessage) adminAccessMessage.textContent = error.message;
                 } finally {
@@ -1224,7 +1235,9 @@ if (adminComplaintsNav) {
 /* ================= INITIAL DASHBOARD LOAD ================= */
 
 if (isStaffUser) {
+    loadStaffDashboard();
     loadAdminComplaints();
+    loadNotifications();
 } else if (userData && userData.role === "Citizen") {
     loadDashboardData();
     loadNotifications();

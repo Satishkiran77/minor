@@ -1,6 +1,9 @@
+const path = require("path");
 const sqlite3 = require("sqlite3").verbose();
 
-const db = new sqlite3.Database("./janseva.db", (err) => {
+// Keep the database beside this file, regardless of the folder used to start Node.js.
+const databasePath = path.join(__dirname, "janseva.db");
+const db = new sqlite3.Database(databasePath, (err) => {
     if (err) {
         console.error("Database connection failed:", err.message);
     } else {
