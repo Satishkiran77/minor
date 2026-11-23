@@ -430,8 +430,12 @@ app.get("/api/admin/complaints", async (req, res) => {
         const complaintFilter = officerOnly ? " WHERE c.assignedOfficerId = ?" : "";
         const complaintParams = officerOnly ? [Number(req.query.userId)] : [];
         const complaints = await new Promise((resolve, reject) => {
-            db.all("SELECT c.id, c.complaintId, c.category, c.subCategory, c.title, c.description, c.state, c.district, c.villageCity, c.nearestTown, c.pincode, c.streetArea, c.latitude, c.longitude, c.location, c.status, c.priority, c.assignedOfficerId, c.dueAt, c.feedbackRating, c.feedbackComment, c.createdAt, c.updatedAt, u.firstName, u.lastName, u.email, u.mobile FROM complaints c LEFT JOIN users u ON u.id = c.userId" + complaintFilter + " ORDER BY c.createdAt DESC",
+            db.all("SELECT c.id, c.complaintId, c.category, c.subCategory, c.title, c.description, c.state, c.district, c.villageCity, c.nearestTown, c.pincode, c.streetArea, c.latitude, c.longitude, c.location, c.status, c.priority, c.evidencePhotos, c.assignedOfficerId, c.dueAt, c.feedbackRating, c.feedbackComment, c.createdAt, c.updatedAt, u.firstName, u.lastName, u.email, u.mobile FROM complaints c LEFT JOIN users u ON u.id = c.userId" + complaintFilter + " ORDER BY c.createdAt DESC",
                 complaintParams, (err, rows) => err ? reject(err) : resolve(rows));
+        });
+        complaints.forEach(complaint => {
+            try { complaint.evidencePhotos = JSON.parse(complaint.evidencePhotos || "[]"); }
+            catch (_) { complaint.evidencePhotos = []; }
         });
         res.json({ success: true, complaints });
     } catch (error) {
