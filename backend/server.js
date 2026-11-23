@@ -419,6 +419,103 @@ async function getStaffRole(userId) {
     });
 }
 
+
+function verificationQuery(sql, params = []) {
+    return new Promise((resolve, reject) => db.all(sql, params, (err, rows) => err ? reject(err) : resolve(rows)));
+}
+function verificationChange(sql, params = []) {
+    return new Promise((resolve, reject) => db.run(sql, params, function (err) {
+        err ? reject(err) : resolve({ changes: this.changes, lastID: this.lastID });
+    }));
+}
+function validateVerificationPhotos(photos) {
+    if (!Array.isArray(photos) || photos.length < 1 || photos.length > 6) return false;
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    return photos.every(photo => photo && allowed.includes(photo.type) &&
+        typeof photo.data === "string" && photo.data.startsWith("data:" + photo.type + ";base64,") &&
+        photo.data.length <= 2800000);
+}
+
+app.get("/api/complaints/verification/pending", async (req, res) => {
+    try {
+        const userId = Number(req.query.userId);
+        if (await getStaffRole(userId) !== "Citizen") return res.status(403).json({ success: false, message: "Citizen access required." });
+        const complaints = await verificationQuery(
+            "SELECT c.complaintId,c.title,c.category,c.description,c.location,c.status,c.evidencePhotos,c.createdAt,v.id AS verificationId,v.workDescription,v.afterPhotos,v.submittedAt " +
+            "FROM complaints c JOIN complaint_verifications v ON v.complaintId=c.complaintId " +
+            "WHERE c.userId=? AND c.status='Awaiting Verification' AND v.verificationStatus='Pending' " +
+            "AND v.id=(SELECT MAX(v2.id) FROM complaint_verifications v2 WHERE v2.complaintId=c.complaintId) ORDER BY v.submittedAt DESC", [userId]);
+        complaints.forEach(item => {
+            try { item.evidencePhotos = JSON.parse(item.evidencePhotos || "[]"); } catch (_) { item.evidencePhotos = []; }
+            try { item.afterPhotos = JSON.parse(item.afterPhotos || "[]"); } catch (_) { item.afterPhotos = []; }
+        });
+        res.json({ success: true, complaints });
+    } catch (error) {
+        console.error("Pending verification fetch error:", error);
+        res.status(500).json({ success: false, message: "Could not load complaints awaiting verification." });
+    }
+});
+
+app.post("/api/admin/complaints/:complaintId/verification", async (req, res) => {
+    try {
+        const officerId = Number(req.body.userId);
+        const role = await getStaffRole(officerId);
+        if (!["Admin", "Officer"].includes(role)) return res.status(403).json({ success: false, message: "Officer or Admin access required." });
+        const workDescription = String(req.body.workDescription || "").trim().slice(0, 1500);
+        const afterPhotos = req.body.afterPhotos;
+        if (workDescription.length < 5) return res.status(400).json({ success: false, message: "Please describe the completed repair (at least 5 characters)." });
+        if (!validateVerificationPhotos(afterPhotos)) return res.status(400).json({ success: false, message: "Upload 1 to 6 JPG, PNG or WEBP photos, each smaller than 2 MB." });
+        const complaint = (await verificationQuery("SELECT complaintId,userId,status FROM complaints WHERE complaintId=?", [req.params.complaintId]))[0];
+        if (!complaint) return res.status(404).json({ success: false, message: "Complaint not found." });
+        if (complaint.status !== "In Progress") return res.status(409).json({ success: false, message: "Only complaints marked In Progress can be submitted for citizen verification." });
+        await verificationChange("INSERT INTO complaint_verifications (complaintId,officerUserId,workDescription,afterPhotos,verificationStatus) VALUES (?,?,?,?,'Pending')",
+            [req.params.complaintId, officerId, workDescription, JSON.stringify(afterPhotos)]);
+        await verificationChange("UPDATE complaints SET status='Awaiting Verification',resolvedAt=NULL,updatedAt=CURRENT_TIMESTAMP WHERE complaintId=?", [req.params.complaintId]);
+        await createComplaintNotification(complaint.userId, req.params.complaintId, "Repair completed - please verify",
+            "The officer submitted after-work photos for " + req.params.complaintId + ". Compare the photos and accept or request rework.", "info");
+        await verificationChange("INSERT INTO audit_logs (actorUserId,actorRole,action,complaintId,details) VALUES (?,?,?,?,?)",
+            [officerId, role, "AFTER_PHOTOS_SUBMITTED", req.params.complaintId, workDescription]);
+        res.status(201).json({ success: true, message: "After-work photos submitted. Waiting for citizen verification." });
+    } catch (error) {
+        console.error("Submit after-work photos error:", error);
+        res.status(500).json({ success: false, message: "Could not submit after-work photos." });
+    }
+});
+
+app.patch("/api/complaints/:complaintId/verification", async (req, res) => {
+    try {
+        const citizenId = Number(req.body.userId);
+        if (await getStaffRole(citizenId) !== "Citizen") return res.status(403).json({ success: false, message: "Citizen access required." });
+        const decision = String(req.body.decision || "");
+        const comment = String(req.body.comment || "").trim().slice(0, 1000);
+        if (!["Accepted", "Rejected"].includes(decision)) return res.status(400).json({ success: false, message: "Choose Accept or Request Rework." });
+        if (decision === "Rejected" && comment.length < 5) return res.status(400).json({ success: false, message: "Please explain why the repair needs more work (at least 5 characters)." });
+        const complaint = (await verificationQuery("SELECT complaintId,userId,status FROM complaints WHERE complaintId=?", [req.params.complaintId]))[0];
+        if (!complaint || Number(complaint.userId) !== citizenId) return res.status(404).json({ success: false, message: "Complaint not found for this citizen." });
+        if (complaint.status !== "Awaiting Verification") return res.status(409).json({ success: false, message: "This complaint is not waiting for verification." });
+        const latest = (await verificationQuery("SELECT id,officerUserId FROM complaint_verifications WHERE complaintId=? AND verificationStatus='Pending' ORDER BY id DESC LIMIT 1", [req.params.complaintId]))[0];
+        if (!latest) return res.status(409).json({ success: false, message: "No pending photo verification was found." });
+        await verificationChange("UPDATE complaint_verifications SET verificationStatus=?,citizenComment=?,reviewedAt=CURRENT_TIMESTAMP WHERE id=?",
+            [decision, comment || null, latest.id]);
+        if (decision === "Accepted") {
+            await verificationChange("UPDATE complaints SET status='Resolved',resolvedAt=CURRENT_TIMESTAMP,updatedAt=CURRENT_TIMESTAMP WHERE complaintId=?", [req.params.complaintId]);
+        } else {
+            await verificationChange("UPDATE complaints SET status='In Progress',resolvedAt=NULL,updatedAt=CURRENT_TIMESTAMP WHERE complaintId=?", [req.params.complaintId]);
+        }
+        await createComplaintNotification(latest.officerUserId, req.params.complaintId,
+            decision === "Accepted" ? "Citizen verified completed work" : "Citizen requested more work",
+            decision === "Accepted" ? req.params.complaintId + " was accepted by the citizen and is now resolved." :
+                req.params.complaintId + " needs rework. Citizen feedback: " + comment,
+            decision === "Accepted" ? "success" : "warning");
+        await verificationChange("INSERT INTO audit_logs (actorUserId,actorRole,action,complaintId,details) VALUES (?,?,?,?,?)",
+            [citizenId, "Citizen", decision === "Accepted" ? "WORK_VERIFIED" : "REWORK_REQUESTED", req.params.complaintId, comment]);
+        res.json({ success: true, message: decision === "Accepted" ? "Thank you. The complaint is now resolved." : "Rework requested. The officer has been notified.", status: decision === "Accepted" ? "Resolved" : "In Progress" });
+    } catch (error) {
+        console.error("Citizen work verification error:", error);
+        res.status(500).json({ success: false, message: "Could not save your verification decision." });
+    }
+});
+
 app.get("/api/admin/complaints", async (req, res) => {
     try {
         const role = await getStaffRole(req.query.userId);
@@ -430,12 +527,14 @@ app.get("/api/admin/complaints", async (req, res) => {
         const complaintFilter = "";
         const complaintParams = [];
         const complaints = await new Promise((resolve, reject) => {
-            db.all("SELECT c.id, c.complaintId, c.category, c.subCategory, c.title, c.description, c.state, c.district, c.villageCity, c.nearestTown, c.pincode, c.streetArea, c.latitude, c.longitude, c.location, c.status, c.priority, c.evidencePhotos, c.assignedOfficerId, c.dueAt, c.feedbackRating, c.feedbackComment, c.createdAt, c.updatedAt, u.firstName, u.lastName, u.email, u.mobile FROM complaints c LEFT JOIN users u ON u.id = c.userId" + complaintFilter + " ORDER BY c.createdAt DESC",
+            db.all("SELECT c.id, c.complaintId, c.category, c.subCategory, c.title, c.description, c.state, c.district, c.villageCity, c.nearestTown, c.pincode, c.streetArea, c.latitude, c.longitude, c.location, c.status, c.priority, c.evidencePhotos, c.assignedOfficerId, c.dueAt, c.feedbackRating, c.feedbackComment, c.createdAt, c.updatedAt, (SELECT v.afterPhotos FROM complaint_verifications v WHERE v.complaintId=c.complaintId ORDER BY v.id DESC LIMIT 1) AS latestAfterPhotos, (SELECT v.citizenComment FROM complaint_verifications v WHERE v.complaintId=c.complaintId ORDER BY v.id DESC LIMIT 1) AS latestCitizenComment, u.firstName, u.lastName, u.email, u.mobile FROM complaints c LEFT JOIN users u ON u.id = c.userId" + complaintFilter + " ORDER BY c.createdAt DESC",
                 complaintParams, (err, rows) => err ? reject(err) : resolve(rows));
         });
         complaints.forEach(complaint => {
             try { complaint.evidencePhotos = JSON.parse(complaint.evidencePhotos || "[]"); }
             catch (_) { complaint.evidencePhotos = []; }
+            try { complaint.latestAfterPhotos = JSON.parse(complaint.latestAfterPhotos || "[]"); }
+            catch (_) { complaint.latestAfterPhotos = []; }
         });
         res.json({ success: true, complaints });
     } catch (error) {
@@ -452,7 +551,7 @@ app.patch("/api/admin/complaints/:complaintId/status", async (req, res) => {
         }
 
         // Officers can update complaints in the shared incoming queue without prior assignment.
-        const allowedStatuses = ["Submitted", "Received", "Under Review", "Assigned", "In Progress", "Resolved"];
+        const allowedStatuses = ["Submitted", "Received", "Under Review", "Assigned", "In Progress"];
         const status = String(req.body.status || "");
         if (!allowedStatuses.includes(status)) {
             return res.status(400).json({ success: false, message: "Invalid complaint status." });
