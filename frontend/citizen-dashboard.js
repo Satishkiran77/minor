@@ -1181,7 +1181,7 @@ async function loadAdminComplaints() {
                                 ${userData.role === "Admin" ? `<td><select class="admin-officer-select" data-complaint-id="${item.complaintId}"><option value="">Unassigned</option>${adminOfficerOptions.map(officer => `<option value="${officer.id}" ${String(officer.id) === String(item.assignedOfficerId || "") ? "selected" : ""}>${officer.firstName} ${officer.lastName}</option>`).join("")}</select><button class="primary-btn admin-assign-officer" data-complaint-id="${item.complaintId}">Assign</button></td>` : ""}
                                 <td>
                                     <select class="admin-status-select" data-complaint-id="${item.complaintId}" aria-label="Status for ${item.complaintId}">
-                                        ${statusOptions.map(status => `<option value="${status}" ${status === item.status ? "selected" : ""}>${status}</option>`).join("")}
+                                        ${item.status === "Awaiting Verification" ? '<option value="Awaiting Verification" selected disabled>Awaiting Verification</option>' : ""}${statusOptions.map(status => `<option value="${status}" ${status === item.status ? "selected" : ""}>${status}</option>`).join("")}
                                     </select>
                                     <button class="primary-btn admin-save-status" data-complaint-id="${item.complaintId}">Save</button>
                                 </td>
