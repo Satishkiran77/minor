@@ -1159,7 +1159,7 @@ async function loadAdminComplaints() {
             <div class="cases-table-wrap">
                 <table class="cases-table">
                     <thead><tr>
-                        <th>Complaint ID</th><th>Citizen</th><th>Complaint</th><th>Location</th><th>Priority</th><th>Status</th>${userData.role === "Admin" ? "<th>Assign Officer</th>" : ""}<th>Update</th>
+                        <th>Complaint ID</th><th>Citizen</th><th>Complaint</th><th>Location</th><th>Evidence & GPS</th><th>Priority</th><th>Status</th>${userData.role === "Admin" ? "<th>Assign Officer</th>" : ""}<th>Update</th>
                     </tr></thead>
                     <tbody>
                         ${data.complaints.map(item => `
@@ -1168,6 +1168,14 @@ async function loadAdminComplaints() {
                                 <td>${item.firstName || ""} ${item.lastName || ""}<br><small>${item.mobile || item.email || ""}</small></td>
                                 <td>${item.title}<br><small>${item.category} · ${item.subCategory || "General"}</small><br><small>${item.description}</small></td>
                                 <td>${item.location || [item.villageCity, item.district, item.pincode].filter(Boolean).join(", ") || "-"}</td>
+                                <td>
+                                    ${Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)) && item.latitude !== "" && item.longitude !== ""
+                                        ? '<a href="https://www.google.com/maps?q=' + encodeURIComponent(String(item.latitude) + "," + String(item.longitude)) + '" target="_blank" rel="noopener noreferrer">📍 Open complaint location</a><br><small>' + item.latitude + ", " + item.longitude + "</small>"
+                                        : "GPS location unavailable"}
+                                    ${(Array.isArray(item.evidencePhotos) && item.evidencePhotos.length)
+                                        ? '<div class="complaint-evidence-preview">' + item.evidencePhotos.map((photo, index) => photo && ["image/jpeg", "image/png", "image/webp"].includes(photo.type) && typeof photo.data === "string" && photo.data.startsWith("data:" + photo.type + ";base64,") ? '<a href="' + photo.data + '" target="_blank" rel="noopener noreferrer">View photo ' + (index + 1) + "</a>" : "").filter(Boolean).join(" · ") + "</div>"
+                                        : "<br><small>No photo evidence</small>"}
+                                </td>
                                 <td>${item.priority || "Normal"}</td>
                                 <td><span class="status-badge">${item.status || "Submitted"}</span></td>
                                 ${userData.role === "Admin" ? `<td><select class="admin-officer-select" data-complaint-id="${item.complaintId}"><option value="">Unassigned</option>${adminOfficerOptions.map(officer => `<option value="${officer.id}" ${String(officer.id) === String(item.assignedOfficerId || "") ? "selected" : ""}>${officer.firstName} ${officer.lastName}</option>`).join("")}</select><button class="primary-btn admin-assign-officer" data-complaint-id="${item.complaintId}">Assign</button></td>` : ""}
