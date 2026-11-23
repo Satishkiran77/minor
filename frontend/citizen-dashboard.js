@@ -1,3 +1,20 @@
+/* Attach the signed session to every JanSeva API request, including requests from scripts loaded later. */
+(function installJanSevaAuthFetch() {
+    if (window.__jansevaAuthFetchInstalled) return;
+    window.__jansevaAuthFetchInstalled = true;
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = function (input, init = {}) {
+        const url = typeof input === "string" ? input : (input && input.url) || "";
+        const token = localStorage.getItem("jansevaToken");
+        if (token && url.startsWith(API_BASE_URL + "/api/")) {
+            const headers = new Headers(init.headers || (input instanceof Request ? input.headers : undefined));
+            headers.set("Authorization", "Bearer " + token);
+            init = { ...init, headers };
+        }
+        return originalFetch(input, init);
+    };
+})();
+
 const API_BASE_URL = "http://localhost:5000";
 
 /* Attach the signed session to every same-origin JanSeva API request, including
