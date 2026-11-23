@@ -54,44 +54,19 @@
             </div>
 
             <nav>
-
-                <button class="nav-item active" data-section="dashboard">
-                    🏠
-                    <span>Dashboard</span>
-                </button>
-
-                <button class="nav-item" data-section="newComplaint">
-                    ➕
-                    <span>New Complaint</span>
-                </button>
-
-                <button class="nav-item" data-section="track">
-                    🔎
-                    <span>Track Complaint</span>
-                </button>
-
-                <button class="nav-item" data-section="adminOverview" id="adminOverviewNav" hidden>📊 <span>Analytics</span></button><button class="nav-item" data-section="adminComplaints" id="adminComplaintsNav" hidden>🛠️ <span>Manage Complaints</span></button><button class="nav-item" data-section="adminOverdue" id="adminOverdueNav" hidden>⏰ <span>Overdue Cases</span></button><button class="nav-item" data-section="adminUsers" id="adminUsersNav" hidden>👥 <span>User Management</span></button><button class="nav-item" data-section="adminFeedback" id="adminFeedbackNav" hidden>⭐ <span>Citizen Feedback</span></button><button class="nav-item" data-section="adminAudit" id="adminAuditNav" hidden>📋 <span>Audit Logs</span></button>
-
-                <button class="nav-item" data-section="myCases">
-                    📁
-                    <span>My Cases</span>
-                </button>
-
-                <button class="nav-item" data-section="notifications">
-                    🔔
-                    <span>Notifications</span>
-                </button>
-
-                <button class="nav-item" data-section="profile">
-                    👤
-                    <span>My Profile</span>
-                </button>
-
-                <button class="nav-item" data-section="settings">
-                    ⚙️
-                    <span>Settings</span>
-                </button>
-
+                <button class="nav-item active" id="citizenDashboardNav" data-section="dashboard">🏠 <span>Dashboard</span></button>
+                <button class="nav-item" id="staffDashboardNav" data-section="staffDashboard" hidden>🏠 <span>Dashboard</span></button>
+                <button class="nav-item" data-section="newComplaint" id="newComplaintNav">➕ <span>New Complaint</span></button>
+                <button class="nav-item" data-section="track" id="trackComplaintNav">🔎 <span>Track Complaint</span></button>
+                <button class="nav-item" data-section="adminOverview" id="adminOverviewNav" hidden>📊 <span>Analytics</span></button>
+                <button class="nav-item" data-section="adminComplaints" id="adminComplaintsNav" hidden>🛠️ <span>Manage Complaints</span></button>
+                <button class="nav-item" data-section="adminOverdue" id="adminOverdueNav" hidden>⏰ <span>Overdue Cases</span></button>
+                <button class="nav-item" data-section="adminUsers" id="adminUsersNav" hidden>👥 <span>User Management</span></button>
+                <button class="nav-item" data-section="adminFeedback" id="adminFeedbackNav" hidden>⭐ <span>Citizen Feedback</span></button>
+                <button class="nav-item" data-section="adminAudit" id="adminAuditNav" hidden>📋 <span>Audit Logs</span></button>
+                <button class="nav-item" data-section="myCases" id="myCasesNav">📁 <span>My Cases</span></button>
+                <button class="nav-item" data-section="notifications" id="notificationsNav">🔔 <span>Notifications</span></button>
+                <button class="nav-item" data-section="profile" id="profileNav">👤 <span>My Profile</span></button>
             </nav>
 
             <div class="help-box">
@@ -104,6 +79,26 @@
 
 
         <main class="main-content">
+
+            <section id="staffDashboard" class="content-section" hidden>
+                <div class="page-heading"><div>
+                    <span class="page-label" id="staffDashboardRole">STAFF WORKSPACE</span>
+                    <h1>Welcome, <span id="staffDashboardName">Team Member</span></h1>
+                    <p id="staffDashboardIntro">Review your work and complaint updates.</p>
+                </div></div>
+                <div id="staffDashboardMessage" role="status">Loading your work summary...</div>
+                <div class="stats-grid" id="staffDashboardCards">
+                    <div class="stat-card"><div><span>Assigned Complaints</span><h2>—</h2></div></div>
+                    <div class="stat-card"><div><span>Pending</span><h2>—</h2></div></div>
+                    <div class="stat-card"><div><span>In Progress</span><h2>—</h2></div></div>
+                    <div class="stat-card"><div><span>Overdue</span><h2>—</h2></div></div>
+                </div>
+                <div class="dashboard-grid"><div class="panel">
+                    <h2>Quick Actions</h2><p>Open the modules available for your role.</p>
+                    <button class="text-btn" data-section="adminComplaints">Open Manage Complaints →</button>
+                    <button class="text-btn" data-section="adminOverdue">View Overdue Cases →</button>
+                </div></div>
+            </section>
 
             <section id="dashboard" class="content-section active-section">
 
@@ -695,7 +690,8 @@
 
 
     <script src="language.js?v=20261123-language-codes"></script>
-    <script src="citizen-dashboard.js?v=20261024-admin-features"></script><script src="admin-features.js?v=20261024-admin-features"></script>
+    <script src="citizen-dashboard.js?v=20261123-role-dashboards"></script>
+    <script src="admin-features.js?v=20261123-role-dashboards"></script>
 
 </body>
 </html>
