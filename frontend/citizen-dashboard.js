@@ -66,9 +66,9 @@ if (userData) {
 const navItems = document.querySelectorAll(".nav-item");
 const sections = document.querySelectorAll(".content-section");
 const allowedSectionsByRole = {
-    Citizen: ["dashboard", "newComplaint", "track", "myCases", "notifications", "profile"],
-    Officer: ["staffDashboard", "adminComplaints", "adminOverdue", "notifications", "profile"],
-    Admin: ["staffDashboard", "adminOverview", "adminComplaints", "adminOverdue", "adminUsers", "adminFeedback", "adminAudit", "notifications", "profile"]
+    Citizen: ["dashboard", "newComplaint", "track", "myCases", "verification", "notifications", "profile"],
+    Officer: ["staffDashboard", "adminComplaints", "verification", "adminOverdue", "notifications", "profile"],
+    Admin: ["staffDashboard", "adminOverview", "adminComplaints", "verification", "adminOverdue", "adminUsers", "adminFeedback", "adminAudit", "notifications", "profile"]
 };
 const allowedSections = allowedSectionsByRole[userData?.role] || [];
 navItems.forEach(item => {
@@ -1153,7 +1153,7 @@ async function loadAdminComplaints() {
             return;
         }
 
-        const statusOptions = ["Submitted", "Received", "Under Review", "Assigned", "In Progress", "Resolved"];
+        const statusOptions = ["Submitted", "Received", "Under Review", "Assigned", "In Progress"];
         if (userData.role === "Admin") { try { const r=await fetch(API_BASE_URL+"/api/admin/officers?userId="+encodeURIComponent(userData.id)); const d=await r.json(); adminOfficerOptions=d.success?d.officers:[]; } catch (_) { adminOfficerOptions=[]; } }
         adminComplaintsList.innerHTML = `
             <div class="cases-table-wrap">
