@@ -617,6 +617,34 @@ app.get("/api/admin/analytics", async (req,res) => { try {
  res.json({success:true,totals:totals[0]||{},categories,monthly,overdue:overdue[0]?.count||0,officerWorkload});
  } catch(e) { console.error(e); res.status(500).json({success:false,message:"Could not load analytics."}); } });
 app.get("/api/admin/officers", async (req,res) => { try { const actor=await adminActor(req.query.userId); if(!actor||actor.role!=="Admin") return res.status(403).json({success:false,message:"Admin access required."}); res.json({success:true,officers:await adminQuery("SELECT id,firstName,lastName,email,mobile,state,district FROM users WHERE role='Officer' ORDER BY firstName,lastName")}); } catch(e) { res.status(500).json({success:false,message:"Could not load officers."}); } });
+app.post("/api/admin/officers", async (req,res) => {
+ try {
+  const actor=await adminActor(req.body.userId);
+  if(!actor||actor.role!=="Admin") return res.status(403).json({success:false,message:"Only Admin can create Officer accounts."});
+  const firstName=String(req.body.firstName||"").trim();
+  const lastName=String(req.body.lastName||"").trim();
+  const email=String(req.body.email||"").trim().toLowerCase();
+  const mobile=String(req.body.mobile||"").replace(/\s+/g,"");
+  const state=String(req.body.state||"").trim();
+  const district=String(req.body.district||"").trim();
+  const password=String(req.body.password||"");
+  if(!firstName||!lastName||!email||!mobile||!state||!district||!password) return res.status(400).json({success:false,message:"Please fill all Officer details."});
+  if(firstName.length>80||lastName.length>80||state.length>100||district.length>100) return res.status(400).json({success:false,message:"Name, state or district is too long."});
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254) return res.status(400).json({success:false,message:"Enter a valid email address."});
+  if(!/^[6-9]\d{9}$/.test(mobile)) return res.status(400).json({success:false,message:"Enter a valid 10-digit Indian mobile number."});
+  if(password.length<8||password.length>72) return res.status(400).json({success:false,message:"Temporary password must be 8 to 72 characters."});
+  const duplicate=await adminQuery("SELECT id FROM users WHERE lower(email)=lower(?) OR mobile=?",[email,mobile]);
+  if(duplicate.length) return res.status(409).json({success:false,message:"Email or mobile number is already registered."});
+  const hashedPassword=await bcrypt.hash(password,10);
+  const created=await adminChange("INSERT INTO users (role,firstName,lastName,email,mobile,state,district,password) VALUES ('Officer',?,?,?,?,?,?,?)",[firstName,lastName,email,mobile,state,district,hashedPassword]);
+  await adminAudit(actor,"OFFICER_ACCOUNT_CREATED",null,"Created Officer account #"+created.lastID+" ("+email+")");
+  res.status(201).json({success:true,message:"Officer account created successfully.",officer:{id:created.lastID,firstName,lastName,email,mobile,state,district}});
+ } catch(e) {
+  console.error("Create Officer account error:",e);
+  if(String(e.message||"").includes("UNIQUE constraint failed")) return res.status(409).json({success:false,message:"Email or mobile number is already registered."});
+  res.status(500).json({success:false,message:"Could not create Officer account."});
+ }
+});
 app.patch("/api/admin/complaints/:complaintId/assign", async (req,res) => { try {
  const actor=await adminActor(req.body.userId); if(!actor) return res.status(403).json({success:false,message:"Staff access required."});
  if(actor.role!=="Admin") return res.status(403).json({success:false,message:"Only Admin can assign officers."});

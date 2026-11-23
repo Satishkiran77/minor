@@ -15,6 +15,25 @@
  }catch(e){if($("adminAnalyticsMessage"))$("adminAnalyticsMessage").textContent=e.message;}}
  async function overdue(){try{const d=await get('/api/admin/overdue?userId='+encodeURIComponent(user.id));showTable("adminOverdueList",["Complaint ID","Title","Status","Priority","Location","Created"],d.complaints.map(x=>[esc(x.complaintId),esc(x.title),esc(x.status),esc(x.priority),esc([x.district,x.state].filter(Boolean).join(", ")),esc(x.createdAt)]));}catch(e){$("adminOverdueList").textContent=e.message;}}
  async function users(){if(user.role!=="Admin")return;try{const d=await get('/api/admin/users?userId='+encodeURIComponent(user.id));showTable("adminUsersList",["Name","Role","Email","Mobile","State / District","Registered"],d.users.map(x=>[esc(x.firstName+" "+x.lastName),esc(x.role),esc(x.email),esc(x.mobile),esc([x.state,x.district].filter(Boolean).join(" / ")),esc(x.createdAt)]));}catch(e){$("adminUsersList").textContent=e.message;}}
+ async function createOfficer(event){
+  event.preventDefault();
+  if(user.role!=="Admin")return;
+  const form=$("createOfficerForm"),button=$("createOfficerSubmit"),message=$("createOfficerMessage");
+  if(!form||!button||!message)return;
+  const values=Object.fromEntries(new FormData(form).entries());
+  values.userId=user.id;
+  button.disabled=true;button.textContent="Creating...";
+  message.textContent="Creating Officer account...";
+  try{
+   const response=await fetch(API+"/api/admin/officers",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(values)});
+   const data=await response.json();
+   if(!response.ok||!data.success)throw Error(data.message||"Could not create Officer account.");
+   form.reset();
+   message.textContent=data.message+" Login email: "+data.officer.email;
+   await users();
+  }catch(error){message.textContent=error.message||"Could not create Officer account.";}
+  finally{button.disabled=false;button.textContent="Create Officer Account";}
+ }
  async function feedback(){if(user.role!=="Admin")return;try{const d=await get('/api/admin/feedback?userId='+encodeURIComponent(user.id));showTable("adminFeedbackList",["Complaint","Citizen","Rating","Comment"],d.feedback.map(x=>[esc(x.complaintId+" · "+x.title),esc(x.firstName+" "+x.lastName),esc(x.feedbackRating+"/5"),esc(x.feedbackComment||"No comment")]));}catch(e){$("adminFeedbackList").textContent=e.message;}}
  async function audit(){if(user.role!=="Admin")return;try{const d=await get('/api/admin/audit-logs?userId='+encodeURIComponent(user.id));showTable("adminAuditList",["When","Staff","Role","Action","Complaint","Details"],d.logs.map(x=>[esc(x.createdAt),esc(x.firstName+" "+x.lastName),esc(x.actorRole),esc(x.action),esc(x.complaintId||"—"),esc(x.details)]));}catch(e){$("adminAuditList").textContent=e.message;}}
  function filterRows(){const search=($("adminComplaintSearch")?.value||"").toLowerCase();const status=$("adminStatusFilter")?.value||"";const priority=$("adminPriorityFilter")?.value||"";document.querySelectorAll("#adminComplaintsList tbody tr").forEach(row=>{const text=row.innerText.toLowerCase();const statusCell=row.cells[5]?.innerText.trim()||"";const priorityCell=row.cells[4]?.innerText.trim()||"";row.hidden=!(text.includes(search)&&(!status||statusCell===status)&&(!priority||priorityCell===priority));});}
@@ -25,5 +44,6 @@
  ["adminComplaintSearch","adminStatusFilter","adminPriorityFilter"].forEach(id=>$(id)?.addEventListener(id==="adminComplaintSearch"?"input":"change",filterRows));
  $("exportAdminComplaints")?.addEventListener("click",exportCsv);
  $("refreshAdminAnalytics")?.addEventListener("click",analytics);$("refreshAdminOverdue")?.addEventListener("click",overdue);$("refreshAdminUsers")?.addEventListener("click",users);$("refreshAdminFeedback")?.addEventListener("click",feedback);$("refreshAdminAudit")?.addEventListener("click",audit);
+ $("createOfficerForm")?.addEventListener("submit",createOfficer);
  if(user.role==="Admin"){analytics();}else{overdue();}
 })();
