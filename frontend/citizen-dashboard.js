@@ -1080,10 +1080,10 @@ if (isStaffUser && adminComplaintsNav) {
     document.title = role + " Workspace | JanSeva Portal";
     if (portalRoleLabel) portalRoleLabel.textContent = role + " Workspace";
     if (profileRoleLabel) profileRoleLabel.textContent = role;
-    if (sidebarWelcomeText) sidebarWelcomeText.textContent = role === "Admin" ? "Manage the portal and monitor public services" : "Review and update your assigned complaints";
+    if (sidebarWelcomeText) sidebarWelcomeText.textContent = role === "Admin" ? "Manage the portal and monitor public services" : "Review and update citizen complaints";
     if (staffDashboardName) staffDashboardName.textContent = userData.firstName || role;
     if (staffDashboardRole) staffDashboardRole.textContent = role.toUpperCase() + " DASHBOARD";
-    if (staffDashboardIntro) staffDashboardIntro.textContent = role === "Admin" ? "Monitor portal activity and manage citizen services." : "View your assigned complaints and follow up on pending work.";
+    if (staffDashboardIntro) staffDashboardIntro.textContent = role === "Admin" ? "Monitor portal activity and manage citizen services." : "View all citizen complaints and follow up on pending work.";
     const roleNavIds = role === "Admin"
         ? ["staffDashboardNav", "adminOverviewNav", "adminComplaintsNav", "adminOverdueNav", "adminUsersNav", "adminFeedbackNav", "adminAuditNav", "notificationsNav", "profileNav"]
         : ["staffDashboardNav", "adminComplaintsNav", "adminOverdueNav", "notificationsNav", "profileNav"];
@@ -1119,11 +1119,11 @@ async function loadStaffDashboard() {
         const inProgress = complaints.filter(item => item.status === "In Progress").length;
         const overdue = (overdueData.complaints || []).length;
         if (cards) {
-            const firstLabel = userData.role === "Admin" ? "All Complaints" : "Assigned Complaints";
+            const firstLabel = "All Complaints";
             cards.innerHTML = [[firstLabel, complaints.length], ["Pending", pending], ["In Progress", inProgress], ["Overdue", overdue]]
                 .map(([label, value]) => '<div class="stat-card"><div><span>' + label + '</span><h2>' + value + '</h2></div></div>').join("");
         }
-        if (message) message.textContent = userData.role === "Admin" ? "Portal-wide complaint summary loaded." : "Summary of complaints assigned to you.";
+        if (message) message.textContent = userData.role === "Admin" ? "Portal-wide complaint summary loaded." : "Summary of all citizen complaints.";
     } catch (error) {
         if (message) message.textContent = error.message || "Could not load your work summary.";
     }
