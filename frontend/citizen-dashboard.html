@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JanSeva Portal | Dashboard</title>
-    <link rel="stylesheet" href="citizen-dashboard.css?v=20261024-responsive-polish">
+    <link rel="stylesheet" href="citizen-dashboard.css?v=20261123-before-after-v1">
 </head>
 
 <body>
@@ -65,6 +65,7 @@
                 <button class="nav-item" data-section="adminFeedback" id="adminFeedbackNav" hidden>⭐ <span>Citizen Feedback</span></button>
                 <button class="nav-item" data-section="adminAudit" id="adminAuditNav" hidden>📋 <span>Audit Logs</span></button>
                 <button class="nav-item" data-section="myCases" id="myCasesNav">📁 <span>My Cases</span></button>
+                <button class="nav-item" data-section="verification" id="verificationNav">📸 <span>Photo Verification</span></button>
                 <button class="nav-item" data-section="notifications" id="notificationsNav">🔔 <span>Notifications</span></button>
                 <button class="nav-item" data-section="profile" id="profileNav">👤 <span>My Profile</span></button>
             </nav>
@@ -627,6 +628,23 @@
             </section>
 
 
+
+            <section id="verification" class="content-section">
+                <div class="page-heading">
+                    <div>
+                        <span class="page-label">WORK COMPLETION CHECK</span>
+                        <h1>Before & After Verification</h1>
+                        <p>Officers submit repair photos. Citizens compare the evidence and confirm whether the issue is fixed.</p>
+                    </div>
+                    <button class="primary-btn" id="refreshVerification">Refresh</button>
+                </div>
+                <div class="panel verification-panel">
+                    <div id="verificationMessage" role="status">Loading verification tasks...</div>
+                    <div id="staffVerificationList" class="verification-list" hidden></div>
+                    <div id="citizenVerificationList" class="verification-list" hidden></div>
+                </div>
+            </section>
+
             <section id="adminComplaints" class="content-section">
                 <div class="page-heading">
                     <div>
@@ -690,8 +708,9 @@
 
 
     <script src="language.js?v=20261123-language-codes"></script>
-    <script src="citizen-dashboard.js?v=20261123-shared-officer-queue"></script>
+    <script src="citizen-dashboard.js?v=20261123-photo-verification-menu-fix"></script>
     <script src="admin-features.js?v=20261123-role-dashboards"></script>
+    <script src="verification.js?v=20261123-before-after-v1"></script>
 
 </body>
 </html>

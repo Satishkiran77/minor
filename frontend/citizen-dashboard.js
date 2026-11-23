@@ -66,9 +66,9 @@ if (userData) {
 const navItems = document.querySelectorAll(".nav-item");
 const sections = document.querySelectorAll(".content-section");
 const allowedSectionsByRole = {
-    Citizen: ["dashboard", "newComplaint", "track", "myCases", "notifications", "profile"],
-    Officer: ["staffDashboard", "adminComplaints", "adminOverdue", "notifications", "profile"],
-    Admin: ["staffDashboard", "adminOverview", "adminComplaints", "adminOverdue", "adminUsers", "adminFeedback", "adminAudit", "notifications", "profile"]
+    Citizen: ["dashboard", "newComplaint", "track", "myCases", "verification", "notifications", "profile"],
+    Officer: ["staffDashboard", "adminComplaints", "verification", "adminOverdue", "notifications", "profile"],
+    Admin: ["staffDashboard", "adminOverview", "adminComplaints", "verification", "adminOverdue", "adminUsers", "adminFeedback", "adminAudit", "notifications", "profile"]
 };
 const allowedSections = allowedSectionsByRole[userData?.role] || [];
 navItems.forEach(item => {
@@ -1085,8 +1085,8 @@ if (isStaffUser && adminComplaintsNav) {
     if (staffDashboardRole) staffDashboardRole.textContent = role.toUpperCase() + " DASHBOARD";
     if (staffDashboardIntro) staffDashboardIntro.textContent = role === "Admin" ? "Monitor portal activity and manage citizen services." : "View all citizen complaints and follow up on pending work.";
     const roleNavIds = role === "Admin"
-        ? ["staffDashboardNav", "adminOverviewNav", "adminComplaintsNav", "adminOverdueNav", "adminUsersNav", "adminFeedbackNav", "adminAuditNav", "notificationsNav", "profileNav"]
-        : ["staffDashboardNav", "adminComplaintsNav", "adminOverdueNav", "notificationsNav", "profileNav"];
+        ? ["staffDashboardNav", "adminOverviewNav", "adminComplaintsNav", "verificationNav", "adminOverdueNav", "adminUsersNav", "adminFeedbackNav", "adminAuditNav", "notificationsNav", "profileNav"]
+        : ["staffDashboardNav", "adminComplaintsNav", "verificationNav", "adminOverdueNav", "notificationsNav", "profileNav"];
     navItems.forEach(item => {
         const visible = roleNavIds.includes(item.id);
         item.hidden = !visible;
@@ -1153,7 +1153,7 @@ async function loadAdminComplaints() {
             return;
         }
 
-        const statusOptions = ["Submitted", "Received", "Under Review", "Assigned", "In Progress", "Resolved"];
+        const statusOptions = ["Submitted", "Received", "Under Review", "Assigned", "In Progress"];
         if (userData.role === "Admin") { try { const r=await fetch(API_BASE_URL+"/api/admin/officers?userId="+encodeURIComponent(userData.id)); const d=await r.json(); adminOfficerOptions=d.success?d.officers:[]; } catch (_) { adminOfficerOptions=[]; } }
         adminComplaintsList.innerHTML = `
             <div class="cases-table-wrap">
@@ -1181,7 +1181,7 @@ async function loadAdminComplaints() {
                                 ${userData.role === "Admin" ? `<td><select class="admin-officer-select" data-complaint-id="${item.complaintId}"><option value="">Unassigned</option>${adminOfficerOptions.map(officer => `<option value="${officer.id}" ${String(officer.id) === String(item.assignedOfficerId || "") ? "selected" : ""}>${officer.firstName} ${officer.lastName}</option>`).join("")}</select><button class="primary-btn admin-assign-officer" data-complaint-id="${item.complaintId}">Assign</button></td>` : ""}
                                 <td>
                                     <select class="admin-status-select" data-complaint-id="${item.complaintId}" aria-label="Status for ${item.complaintId}">
-                                        ${statusOptions.map(status => `<option value="${status}" ${status === item.status ? "selected" : ""}>${status}</option>`).join("")}
+                                        ${item.status === "Awaiting Verification" ? '<option value="Awaiting Verification" selected disabled>Awaiting Verification</option>' : ""}${statusOptions.map(status => `<option value="${status}" ${status === item.status ? "selected" : ""}>${status}</option>`).join("")}
                                     </select>
                                     <button class="primary-btn admin-save-status" data-complaint-id="${item.complaintId}">Save</button>
                                 </td>
