@@ -926,7 +926,8 @@
 
     function languageCode() {
         const select = document.getElementById("languageSelect");
-        const chosen = select ? languageNames[select.value] : localStorage.getItem(storageKey);
+        const selectedValue = select ? select.value : localStorage.getItem(storageKey);
+        const chosen = supported.has(selectedValue) ? selectedValue : languageNames[selectedValue];
         return supported.has(chosen) ? chosen : "en";
     }
 
@@ -1000,8 +1001,7 @@
         });
         const select = document.getElementById("languageSelect");
         if (select) {
-            const value = Object.keys(languageNames).find(name => languageNames[name] === code);
-            if (value) select.value = value;
+            select.value = code;
         }
     }
 
@@ -1009,10 +1009,9 @@
         const select = document.getElementById("languageSelect");
         const saved = localStorage.getItem(storageKey) || "en";
         if (select) {
-            const initialName = Object.keys(languageNames).find(name => languageNames[name] === saved);
-            if (initialName) select.value = initialName;
+            select.value = supported.has(saved) ? saved : "en";
             select.addEventListener("change", () => {
-                const chosen = languageNames[select.value] || "en";
+                const chosen = supported.has(select.value) ? select.value : (languageNames[select.value] || "en");
                 if (!supported.has(chosen)) return;
                 applyLanguage(chosen);
             });
