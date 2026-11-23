@@ -84,6 +84,7 @@ loginButton.addEventListener("click", async function () {
 
         if (data.success) {
             localStorage.setItem("jansevaUser", JSON.stringify(data.user));
+            localStorage.setItem("jansevaToken", data.token);
 
             alert("Login successful! Welcome " + data.user.firstName);
 
@@ -91,6 +92,7 @@ loginButton.addEventListener("click", async function () {
                 window.location.href = "citizen-dashboard.html";
             } else {
                 localStorage.removeItem("jansevaUser");
+                localStorage.removeItem("jansevaToken");
                 alert("This account has an unsupported role. Please contact the administrator.");
             }
         }
