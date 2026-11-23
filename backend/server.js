@@ -426,9 +426,9 @@ app.get("/api/admin/complaints", async (req, res) => {
             return res.status(403).json({ success: false, message: "Admin or Officer access required." });
         }
 
-        const officerOnly = role === "Officer";
-        const complaintFilter = officerOnly ? " WHERE c.assignedOfficerId = ?" : "";
-        const complaintParams = officerOnly ? [Number(req.query.userId)] : [];
+        // Officers share the incoming complaint queue; Admin assignment is not required.
+        const complaintFilter = "";
+        const complaintParams = [];
         const complaints = await new Promise((resolve, reject) => {
             db.all("SELECT c.id, c.complaintId, c.category, c.subCategory, c.title, c.description, c.state, c.district, c.villageCity, c.nearestTown, c.pincode, c.streetArea, c.latitude, c.longitude, c.location, c.status, c.priority, c.evidencePhotos, c.assignedOfficerId, c.dueAt, c.feedbackRating, c.feedbackComment, c.createdAt, c.updatedAt, u.firstName, u.lastName, u.email, u.mobile FROM complaints c LEFT JOIN users u ON u.id = c.userId" + complaintFilter + " ORDER BY c.createdAt DESC",
                 complaintParams, (err, rows) => err ? reject(err) : resolve(rows));
@@ -451,16 +451,7 @@ app.patch("/api/admin/complaints/:complaintId/status", async (req, res) => {
             return res.status(403).json({ success: false, message: "Admin or Officer access required." });
         }
 
-        if (role === "Officer") {
-            const assignedComplaint = await new Promise((resolve, reject) => {
-                db.get("SELECT id FROM complaints WHERE complaintId = ? AND assignedOfficerId = ?",
-                    [req.params.complaintId, Number(req.body.userId)],
-                    (err, row) => err ? reject(err) : resolve(row || null));
-            });
-            if (!assignedComplaint) {
-                return res.status(403).json({ success: false, message: "Officers can update only complaints assigned to them." });
-            }
-        }
+        // Officers can update complaints in the shared incoming queue without prior assignment.
         const allowedStatuses = ["Submitted", "Received", "Under Review", "Assigned", "In Progress", "Resolved"];
         const status = String(req.body.status || "");
         if (!allowedStatuses.includes(status)) {
