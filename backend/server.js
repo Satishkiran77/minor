@@ -558,8 +558,8 @@ app.patch("/api/admin/complaints/:complaintId/status", async (req, res) => {
         }
 
         const result = await new Promise((resolve, reject) => {
-            db.run("UPDATE complaints SET status = ?, resolvedAt = CASE WHEN ? = 'Resolved' THEN CURRENT_TIMESTAMP ELSE resolvedAt END, updatedAt = CURRENT_TIMESTAMP WHERE complaintId = ?",
-                [status, status, req.params.complaintId], function (err) {
+            db.run("UPDATE complaints SET status = ?, resolvedAt = NULL, updatedAt = CURRENT_TIMESTAMP WHERE complaintId = ?",
+                [status, req.params.complaintId], function (err) {
                     if (err) reject(err);
                     else resolve(this.changes);
                 });
