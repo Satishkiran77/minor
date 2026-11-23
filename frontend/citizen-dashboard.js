@@ -17,13 +17,12 @@
 
 const API_BASE_URL = "http://localhost:5000";
 
-/* Attach the signed session to every same-origin JanSeva API request, including
-   requests made by verification.js and admin-features.js loaded after this file. */
+/* Attach the signed session to every JanSeva API request, including scripts loaded later. */
 (function installJanSevaAuthFetch() {
     if (window.__jansevaAuthFetchInstalled) return;
     window.__jansevaAuthFetchInstalled = true;
     const originalFetch = window.fetch.bind(window);
-    window.fetch = function (input, init = {}) {
+    window.fetch = async function (input, init = {}) {
         const url = typeof input === "string" ? input : (input && input.url) || "";
         const token = localStorage.getItem("jansevaToken");
         if (token && url.startsWith(API_BASE_URL + "/api/")) {
@@ -31,10 +30,15 @@ const API_BASE_URL = "http://localhost:5000";
             headers.set("Authorization", "Bearer " + token);
             init = { ...init, headers };
         }
-        return originalFetch(input, init);
+        const response = await originalFetch(input, init);
+        if (response.status === 401 && url.startsWith(API_BASE_URL + "/api/")) {
+            localStorage.removeItem("jansevaUser");
+            localStorage.removeItem("jansevaToken");
+            window.location.href = "index.html";
+        }
+        return response;
     };
 })();
-
 
 /* ================= USER DATA ================= */
 
