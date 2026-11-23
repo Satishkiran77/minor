@@ -1085,8 +1085,8 @@ if (isStaffUser && adminComplaintsNav) {
     if (staffDashboardRole) staffDashboardRole.textContent = role.toUpperCase() + " DASHBOARD";
     if (staffDashboardIntro) staffDashboardIntro.textContent = role === "Admin" ? "Monitor portal activity and manage citizen services." : "View all citizen complaints and follow up on pending work.";
     const roleNavIds = role === "Admin"
-        ? ["staffDashboardNav", "adminOverviewNav", "adminComplaintsNav", "adminOverdueNav", "adminUsersNav", "adminFeedbackNav", "adminAuditNav", "notificationsNav", "profileNav"]
-        : ["staffDashboardNav", "adminComplaintsNav", "adminOverdueNav", "notificationsNav", "profileNav"];
+        ? ["staffDashboardNav", "adminOverviewNav", "adminComplaintsNav", "verificationNav", "adminOverdueNav", "adminUsersNav", "adminFeedbackNav", "adminAuditNav", "notificationsNav", "profileNav"]
+        : ["staffDashboardNav", "adminComplaintsNav", "verificationNav", "adminOverdueNav", "notificationsNav", "profileNav"];
     navItems.forEach(item => {
         const visible = roleNavIds.includes(item.id);
         item.hidden = !visible;
