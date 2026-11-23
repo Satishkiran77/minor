@@ -90,9 +90,9 @@ app.post("/api/register", async (req, res) => {
             return res.status(400).json({ success: false, message: "Please fill all required fields." });
         }
 
-        // Public registration must never create privileged Admin accounts.
-        if (!["Citizen", "Officer"].includes(role)) {
-            return res.status(403).json({ success: false, message: "Admin accounts must be created locally by an authorized administrator." });
+        // Public registration is Citizen-only. Officer accounts are provisioned by Admin.
+        if (role !== "Citizen") {
+            return res.status(403).json({ success: false, message: "Public registration is for Citizen accounts only. Contact an administrator for an Officer account." });
         }
 
         const existingUser = await new Promise((resolve, reject) => {
