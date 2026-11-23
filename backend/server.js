@@ -119,6 +119,60 @@ app.post("/api/register", async (req, res) => {
     }
 });
 
+
+/* Signed, short-lived API sessions. The fallback secret is process-local for development;
+   deployments should set JANSEVA_AUTH_SECRET to a persistent random value (32+ characters). */
+const AUTH_SECRET = process.env.JANSEVA_AUTH_SECRET || crypto.randomBytes(48).toString("hex");
+if (!process.env.JANSEVA_AUTH_SECRET) {
+    console.warn("JANSEVA_AUTH_SECRET is not set. Sessions will expire when this server restarts. Set it in the deployment environment.");
+}
+function createAuthToken(userId) {
+    const payload = Buffer.from(JSON.stringify({
+        sub: Number(userId),
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + (8 * 60 * 60),
+        iss: "janseva-api"
+    })).toString("base64url");
+    const signature = crypto.createHmac("sha256", AUTH_SECRET).update(payload).digest("base64url");
+    return payload + "." + signature;
+}
+function safeSignatureEqual(actual, expected) {
+    const a = Buffer.from(actual || "");
+    const b = Buffer.from(expected || "");
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+async function authenticateApiRequest(req, res, next) {
+    try {
+        const header = req.headers.authorization || "";
+        const match = header.match(/^Bearer ([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)$/);
+        if (!match) return res.status(401).json({ success: false, message: "Please login again to continue." });
+        const expected = crypto.createHmac("sha256", AUTH_SECRET).update(match[1]).digest("base64url");
+        if (!safeSignatureEqual(match[2], expected)) return res.status(401).json({ success: false, message: "Your login session is invalid. Please login again." });
+        const payload = JSON.parse(Buffer.from(match[1], "base64url").toString("utf8"));
+        if (!Number.isSafeInteger(payload.sub) || payload.sub < 1 || payload.iss !== "janseva-api" ||
+            !Number.isFinite(payload.exp) || payload.exp <= Math.floor(Date.now() / 1000)) {
+            return res.status(401).json({ success: false, message: "Your login session expired. Please login again." });
+        }
+        const user = await new Promise((resolve, reject) => {
+            db.get("SELECT id, role, firstName, lastName, email, mobile, state, district FROM users WHERE id = ?",
+                [payload.sub], (err, row) => err ? reject(err) : resolve(row));
+        });
+        if (!user) return res.status(401).json({ success: false, message: "Account not found. Please login again." });
+
+        // Reject attempts to act as another account by changing a URL or request-body userId.
+        const suppliedIds = [req.params.userId, req.query.userId, req.body && req.body.userId]
+            .filter(value => value !== undefined && value !== null && value !== "");
+        if (suppliedIds.some(value => String(value) !== String(user.id))) {
+            return res.status(403).json({ success: false, message: "You cannot access another user's account." });
+        }
+        req.user = user;
+        next();
+    } catch (error) {
+        console.error("API authentication error:", error);
+        res.status(401).json({ success: false, message: "Could not verify your login session." });
+    }
+}
+
 app.post("/api/login", async (req, res) => {
     try {
         const { identifier, password, role } = req.body;
@@ -143,8 +197,11 @@ app.post("/api/login", async (req, res) => {
             return res.status(401).json({ success: false, message: "Invalid email/mobile or password." });
         }
 
+        const token = createAuthToken(user.id);
         res.json({
             success: true,
+            token,
+            expiresIn: 8 * 60 * 60,
             message: "Login successful.",
             user: {
                 id: user.id,
@@ -162,6 +219,9 @@ app.post("/api/login", async (req, res) => {
         res.status(500).json({ success: false, message: "Server error. Please try again later." });
     }
 });
+
+// Everything below this point (except the public routes above) requires a signed session.
+app.use("/api", authenticateApiRequest);
 
 function generateComplaintId() {
     const randomPart = crypto.randomBytes(3).toString("hex").toUpperCase();
@@ -360,12 +420,12 @@ app.get("/api/complaints/user/:userId", async (req, res) => {
 app.get("/api/complaints/track/:complaintId", async (req, res) => {
     try {
         const complaint = await new Promise((resolve, reject) => {
-            db.get("SELECT id, complaintId, category, subCategory, title, description, state, district, villageCity, nearestTown, pincode, streetArea, latitude, longitude, location, status, priority, evidencePhotos, createdAt, updatedAt FROM complaints WHERE complaintId = ?",
+            db.get("SELECT id, complaintId, userId, category, subCategory, title, description, state, district, villageCity, nearestTown, pincode, streetArea, latitude, longitude, location, status, priority, evidencePhotos, createdAt, updatedAt FROM complaints WHERE complaintId = ?",
                 [req.params.complaintId],
                 (err, row) => err ? reject(err) : resolve(row));
         });
 
-        if (!complaint) {
+        if (!complaint || (String(complaint.userId) !== String(req.user.id) && !["Admin", "Officer"].includes(req.user.role))) {
             return res.status(404).json({ success: false, message: "Complaint not found." });
         }
 
