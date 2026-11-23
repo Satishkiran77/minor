@@ -160,7 +160,7 @@ async function authenticateApiRequest(req, res, next) {
         if (!user) return res.status(401).json({ success: false, message: "Account not found. Please login again." });
 
         // Reject attempts to act as another account by changing a URL or request-body userId.
-        const pathUserMatch = req.path.match(/^\\/(?:notifications\\/([^/]+)|complaints\\/(?:user|stats)\\/([^/]+))$/);
+        const pathUserMatch = req.path.match(/^\/(?:notifications\/([^/]+)|complaints\/(?:user|stats)\/([^/]+))$/);
         const pathUserId = pathUserMatch && (pathUserMatch[1] || pathUserMatch[2]);
         const suppliedIds = [pathUserId, req.params.userId, req.query.userId, req.body && req.body.userId]
             .filter(value => value !== undefined && value !== null && value !== "");
