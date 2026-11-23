@@ -160,7 +160,9 @@ async function authenticateApiRequest(req, res, next) {
         if (!user) return res.status(401).json({ success: false, message: "Account not found. Please login again." });
 
         // Reject attempts to act as another account by changing a URL or request-body userId.
-        const suppliedIds = [req.params.userId, req.query.userId, req.body && req.body.userId]
+        const pathUserMatch = req.path.match(/^\\/(?:notifications\\/([^/]+)|complaints\\/(?:user|stats)\\/([^/]+))$/);
+        const pathUserId = pathUserMatch && (pathUserMatch[1] || pathUserMatch[2]);
+        const suppliedIds = [pathUserId, req.params.userId, req.query.userId, req.body && req.body.userId]
             .filter(value => value !== undefined && value !== null && value !== "");
         if (suppliedIds.some(value => String(value) !== String(user.id))) {
             return res.status(403).json({ success: false, message: "You cannot access another user's account." });
@@ -292,6 +294,7 @@ app.post("/api/complaints", async (req, res) => {
     try {
         const { userId, category, subCategory, title, description, state, district, villageCity, nearestTown, pincode, streetArea, latitude, longitude, location, priority, evidencePhotos = [] } = req.body;
 
+        if (req.user.role !== "Citizen") return res.status(403).json({ success: false, message: "Only Citizen accounts can submit complaints." });
         if (!userId || !category || !title || !description || !state || !district) {
             return res.status(400).json({ success: false, message: "Please fill all required complaint fields." });
         }
@@ -718,7 +721,7 @@ app.get("/api/admin/overdue", async (req,res) => { try { const actor=await admin
 app.get("/api/admin/users", async (req,res) => { try { const actor=await adminActor(req.query.userId); if(!actor||actor.role!=="Admin") return res.status(403).json({success:false,message:"Admin access required."}); res.json({success:true,users:await adminQuery("SELECT id,role,firstName,lastName,email,mobile,state,district,createdAt FROM users ORDER BY createdAt DESC LIMIT 500")}); } catch(e) { res.status(500).json({success:false,message:"Could not load users."}); } });
 app.get("/api/admin/audit-logs", async (req,res) => { try { const actor=await adminActor(req.query.userId); if(!actor||actor.role!=="Admin") return res.status(403).json({success:false,message:"Admin access required."}); res.json({success:true,logs:await adminQuery("SELECT a.id,a.actorUserId,a.actorRole,a.action,a.complaintId,a.details,a.createdAt,u.firstName,u.lastName FROM audit_logs a LEFT JOIN users u ON u.id=a.actorUserId ORDER BY a.createdAt DESC,a.id DESC LIMIT 100")}); } catch(e) { res.status(500).json({success:false,message:"Could not load audit logs."}); } });
 app.get("/api/admin/feedback", async (req,res) => { try { const actor=await adminActor(req.query.userId); if(!actor||actor.role!=="Admin") return res.status(403).json({success:false,message:"Admin access required."}); res.json({success:true,feedback:await adminQuery("SELECT c.complaintId,c.title,c.feedbackRating,c.feedbackComment,c.updatedAt,u.firstName,u.lastName FROM complaints c LEFT JOIN users u ON u.id=c.userId WHERE c.feedbackRating IS NOT NULL ORDER BY c.updatedAt DESC LIMIT 200")}); } catch(e) { res.status(500).json({success:false,message:"Could not load feedback."}); } });
-app.post("/api/complaints/:complaintId/feedback", async (req,res) => { try { const userId=Number(req.body.userId),rating=Number(req.body.rating); if(!userId||!Number.isInteger(rating)||rating<1||rating>5) return res.status(400).json({success:false,message:"Choose a rating from 1 to 5."}); const result=await adminChange("UPDATE complaints SET feedbackRating=?,feedbackComment=? WHERE complaintId=? AND userId=? AND status='Resolved'",[rating,String(req.body.comment||"").slice(0,1000),req.params.complaintId,userId]); if(!result.changes) return res.status(400).json({success:false,message:"Only the owner of a resolved complaint can submit feedback."}); res.json({success:true,message:"Thank you for your feedback."}); } catch(e) { res.status(500).json({success:false,message:"Could not save feedback."}); } });
+app.post("/api/complaints/:complaintId/feedback", async (req,res) => { try { const userId=Number(req.user.id),rating=Number(req.body.rating); if(req.user.role!=="Citizen") return res.status(403).json({success:false,message:"Citizen access required."}); if(!userId||!Number.isInteger(rating)||rating<1||rating>5) return res.status(400).json({success:false,message:"Choose a rating from 1 to 5."}); const result=await adminChange("UPDATE complaints SET feedbackRating=?,feedbackComment=? WHERE complaintId=? AND userId=? AND status='Resolved'",[rating,String(req.body.comment||"").slice(0,1000),req.params.complaintId,userId]); if(!result.changes) return res.status(400).json({success:false,message:"Only the owner of a resolved complaint can submit feedback."}); res.json({success:true,message:"Thank you for your feedback."}); } catch(e) { res.status(500).json({success:false,message:"Could not save feedback."}); } });
 
 const PORT = 5000;
 app.listen(PORT, () => console.log("Server running on port " + PORT));
