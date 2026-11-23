@@ -181,29 +181,9 @@ document.querySelectorAll(".text-btn").forEach(function (button) {
 
         if (!sectionName) return;
 
-        navItems.forEach(function (nav) {
-            nav.classList.remove("active");
-        });
-
-        const targetNav =
-            document.querySelector(
-                `[data-section="${sectionName}"]`
-            );
-
-        if (targetNav) {
-            targetNav.classList.add("active");
-        }
-
-        sections.forEach(function (section) {
-            section.classList.remove("active-section");
-        });
-
-        const targetSection =
-            document.getElementById(sectionName);
-
-        if (targetSection) {
-            targetSection.classList.add("active-section");
-        }
+        if (!allowedSections.includes(sectionName)) return;
+        const targetNav = document.querySelector(`.nav-item[data-section="${sectionName}"]`);
+        if (targetNav && !targetNav.hidden) targetNav.click();
 
     });
 
@@ -1221,7 +1201,8 @@ async function loadAdminComplaints() {
                     if (!updateResponse.ok || !updateData.success) throw new Error(updateData.message || "Status update failed.");
                     if (adminAccessMessage) adminAccessMessage.textContent = complaintId + " status updated to " + select.value + ".";
                     await loadAdminComplaints();
-                    await loadDashboardData();
+                    if (isStaffUser) await loadStaffDashboard();
+                    else await loadDashboardData();
                 } catch (error) {
                     if (adminAccessMessage) adminAccessMessage.textContent = error.message;
                 } finally {
