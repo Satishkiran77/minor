@@ -52,6 +52,11 @@ complaintColumns.forEach(([column, type]) => {
     });
 });
 
+db.run("CREATE TABLE IF NOT EXISTS complaint_verifications (id INTEGER PRIMARY KEY AUTOINCREMENT, complaintId TEXT NOT NULL, officerUserId INTEGER NOT NULL, workDescription TEXT NOT NULL, afterPhotos TEXT NOT NULL, verificationStatus TEXT NOT NULL DEFAULT 'Pending', citizenComment TEXT, submittedAt DATETIME DEFAULT CURRENT_TIMESTAMP, reviewedAt DATETIME)", (err) => {
+    if (err) console.error("Complaint verification table creation failed:", err.message);
+    else console.log("Complaint verification table ready.");
+});
+
 db.run("CREATE TABLE IF NOT EXISTS audit_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, actorUserId INTEGER, actorRole TEXT, action TEXT NOT NULL, complaintId TEXT, details TEXT, createdAt DATETIME DEFAULT CURRENT_TIMESTAMP)", (err) => {
     if (err) console.error("Audit logs table creation failed:", err.message);
     else console.log("Audit logs table ready.");
