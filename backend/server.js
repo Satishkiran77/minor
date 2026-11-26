@@ -645,15 +645,42 @@ app.post("/api/admin/officers", async (req,res) => {
   res.status(500).json({success:false,message:"Could not create Officer account."});
  }
 });
-app.patch("/api/admin/complaints/:complaintId/assign", async (req,res) => { try {
- const actor=await adminActor(req.body.userId); if(!actor) return res.status(403).json({success:false,message:"Staff access required."});
- if(actor.role!=="Admin") return res.status(403).json({success:false,message:"Only Admin can assign officers."});
- const officerId=req.body.officerId?Number(req.body.officerId):null;
- if(officerId && !(await adminQuery("SELECT id FROM users WHERE id=? AND role='Officer'",[officerId])).length) return res.status(400).json({success:false,message:"Select a valid officer."});
- const result=await adminChange("UPDATE complaints SET assignedOfficerId=?,status=CASE WHEN ? IS NOT NULL AND status='Submitted' THEN 'Assigned' ELSE status END,updatedAt=CURRENT_TIMESTAMP WHERE complaintId=?",[officerId,officerId,req.params.complaintId]);
- if(!result.changes) return res.status(404).json({success:false,message:"Complaint not found."});
- await adminAudit(actor,officerId?"OFFICER_ASSIGNED":"OFFICER_UNASSIGNED",req.params.complaintId,officerId?"Officer ID "+officerId:"Assignment removed"); res.json({success:true,message:"Officer assignment updated."});
- } catch(e) { console.error(e); res.status(500).json({success:false,message:"Could not assign officer."}); } });
+app.patch("/api/admin/complaints/:complaintId/assign", async (req,res) => {
+ try {
+  const actor=await adminActor(req.body.userId);
+  if(!actor) return res.status(403).json({success:false,message:"Staff access required."});
+  if(actor.role!=="Admin") return res.status(403).json({success:false,message:"Only Admin can assign officers."});
+  const officerId=req.body.officerId?Number(req.body.officerId):null;
+  if(officerId && !(await adminQuery("SELECT id FROM users WHERE id=? AND role='Officer'",[officerId])).length) {
+   return res.status(400).json({success:false,message:"Select a valid officer."});
+  }
+  const complaintRows=await adminQuery("SELECT complaintId,title,userId,assignedOfficerId FROM complaints WHERE complaintId=?",[req.params.complaintId]);
+  const complaint=complaintRows[0];
+  if(!complaint) return res.status(404).json({success:false,message:"Complaint not found."});
+  const result=await adminChange(
+   "UPDATE complaints SET assignedOfficerId=?,status=CASE WHEN ? IS NOT NULL AND status='Submitted' THEN 'Assigned' ELSE status END,updatedAt=CURRENT_TIMESTAMP WHERE complaintId=?",
+   [officerId,officerId,req.params.complaintId]
+  );
+  if(!result.changes) return res.status(404).json({success:false,message:"Complaint not found."});
+  if(officerId && officerId !== Number(complaint.assignedOfficerId)) {
+   await createComplaintNotification(
+    officerId,req.params.complaintId,"New complaint assigned to you",
+    "Complaint "+req.params.complaintId+" ("+complaint.title+") has been assigned to you. Please review and take action.","info"
+   );
+  }
+  if(complaint.assignedOfficerId && Number(complaint.assignedOfficerId)!==officerId) {
+   await createComplaintNotification(
+    Number(complaint.assignedOfficerId),req.params.complaintId,"Complaint assignment changed",
+    "Complaint "+req.params.complaintId+" is no longer assigned to you.","warning"
+   );
+  }
+  await adminAudit(actor,officerId?"OFFICER_ASSIGNED":"OFFICER_UNASSIGNED",req.params.complaintId,officerId?"Officer ID "+officerId:"Assignment removed");
+  res.json({success:true,message:officerId?"Officer assigned and notification sent.":"Officer assignment removed."});
+ } catch(e) {
+  console.error("Assign officer error:",e);
+  res.status(500).json({success:false,message:"Could not assign officer."});
+ }
+});
 app.get("/api/admin/overdue", async (req,res) => { try { const actor=await adminActor(req.query.userId); if(!actor) return res.status(403).json({success:false,message:"Staff access required."}); const complaints=await adminQuery("SELECT complaintId,title,status,priority,state,district,createdAt,dueAt FROM complaints WHERE status!='Resolved' AND ((dueAt IS NOT NULL AND datetime(dueAt)<datetime('now')) OR (dueAt IS NULL AND julianday('now')-julianday(createdAt)>7)) ORDER BY createdAt ASC"); res.json({success:true,complaints}); } catch(e) { res.status(500).json({success:false,message:"Could not load overdue complaints."}); } });
 app.get("/api/admin/users", async (req,res) => { try { const actor=await adminActor(req.query.userId); if(!actor||actor.role!=="Admin") return res.status(403).json({success:false,message:"Admin access required."}); res.json({success:true,users:await adminQuery("SELECT id,role,firstName,lastName,email,mobile,state,district,createdAt FROM users ORDER BY createdAt DESC LIMIT 500")}); } catch(e) { res.status(500).json({success:false,message:"Could not load users."}); } });
 app.get("/api/admin/audit-logs", async (req,res) => { try { const actor=await adminActor(req.query.userId); if(!actor||actor.role!=="Admin") return res.status(403).json({success:false,message:"Admin access required."}); res.json({success:true,logs:await adminQuery("SELECT a.id,a.actorUserId,a.actorRole,a.action,a.complaintId,a.details,a.createdAt,u.firstName,u.lastName FROM audit_logs a LEFT JOIN users u ON u.id=a.actorUserId ORDER BY a.createdAt DESC,a.id DESC LIMIT 100")}); } catch(e) { res.status(500).json({success:false,message:"Could not load audit logs."}); } });
