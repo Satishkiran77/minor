@@ -183,11 +183,11 @@ async function createComplaintNotification(userId, complaintId, title, message, 
 async function sendThreeDayInactivityReminders() {
     const pendingComplaints = await new Promise((resolve, reject) => {
         db.all(
-            "SELECT c.complaintId, c.title, c.assignedOfficerId, COALESCE(c.updatedAt, c.createdAt) AS inactivitySince " +
+            "SELECT c.complaintId, c.title, c.assignedOfficerId, COALESCE(c.lastOfficerActionAt, c.assignedAt, c.createdAt) AS inactivitySince " +
             "FROM complaints c INNER JOIN users o ON o.id = c.assignedOfficerId AND o.role = 'Officer' " +
             "WHERE c.assignedOfficerId IS NOT NULL " +
             "AND c.status IN ('Submitted', 'Pending', 'Received', 'Under Review', 'Assigned') " +
-            "AND datetime(COALESCE(c.updatedAt, c.createdAt)) <= datetime('now', '-3 days')",
+            "AND datetime(COALESCE(c.lastOfficerActionAt, c.assignedAt, c.createdAt)) <= datetime('now', '-3 days')",
             [],
             (err, rows) => err ? reject(err) : resolve(rows || [])
         );
@@ -673,11 +673,13 @@ app.patch("/api/admin/complaints/:complaintId/status", async (req, res) => {
         }
 
         const result = await new Promise((resolve, reject) => {
-            db.run("UPDATE complaints SET status = ?, resolvedAt = NULL, updatedAt = CURRENT_TIMESTAMP WHERE complaintId = ?",
-                [status, req.params.complaintId], function (err) {
-                    if (err) reject(err);
-                    else resolve(this.changes);
-                });
+            const statusSql = role === "Officer"
+                ? "UPDATE complaints SET status = ?, resolvedAt = NULL, updatedAt = CURRENT_TIMESTAMP, lastOfficerActionAt = CURRENT_TIMESTAMP WHERE complaintId = ?"
+                : "UPDATE complaints SET status = ?, resolvedAt = NULL, updatedAt = CURRENT_TIMESTAMP WHERE complaintId = ?";
+            db.run(statusSql, [status, req.params.complaintId], function (err) {
+                if (err) reject(err);
+                else resolve(this.changes);
+            });
         });
 
         if (!result) {
@@ -787,8 +789,8 @@ app.patch("/api/admin/complaints/:complaintId/assign", async (req,res) => {
   const complaint=complaintRows[0];
   if(!complaint) return res.status(404).json({success:false,message:"Complaint not found."});
   const result=await adminChange(
-   "UPDATE complaints SET assignedOfficerId=?,status=CASE WHEN ? IS NOT NULL AND status='Submitted' THEN 'Assigned' ELSE status END,updatedAt=CURRENT_TIMESTAMP WHERE complaintId=?",
-   [officerId,officerId,req.params.complaintId]
+   "UPDATE complaints SET assignedOfficerId=?,status=CASE WHEN ? IS NOT NULL AND status='Submitted' THEN 'Assigned' ELSE status END,updatedAt=CURRENT_TIMESTAMP,assignedAt=CASE WHEN ? IS NULL THEN NULL WHEN assignedOfficerId IS NULL OR assignedOfficerId!=? THEN CURRENT_TIMESTAMP ELSE assignedAt END,lastOfficerActionAt=CASE WHEN ? IS NULL OR assignedOfficerId IS NULL OR assignedOfficerId!=? THEN NULL ELSE lastOfficerActionAt END WHERE complaintId=?",
+   [officerId,officerId,officerId,officerId,officerId,officerId,req.params.complaintId]
   );
   if(!result.changes) return res.status(404).json({success:false,message:"Complaint not found."});
   if(officerId && officerId !== Number(complaint.assignedOfficerId)) {
@@ -819,8 +821,11 @@ app.post("/api/complaints/:complaintId/feedback", async (req,res) => { try { con
 const PORT = 5000;
 app.listen(PORT, () => {
     console.log("Server running on port " + PORT);
-    sendThreeDayInactivityReminders().catch(error => console.error("3-day reminder check failed:", error));
-    setInterval(() => {
+    // Give database column migrations time to finish before the first scheduled check.
+    setTimeout(() => {
         sendThreeDayInactivityReminders().catch(error => console.error("3-day reminder check failed:", error));
-    }, 60 * 60 * 1000);
+        setInterval(() => {
+            sendThreeDayInactivityReminders().catch(error => console.error("3-day reminder check failed:", error));
+        }, 5 * 60 * 1000);
+    }, 30000);
 });
