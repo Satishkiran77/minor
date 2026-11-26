@@ -180,6 +180,52 @@ async function createComplaintNotification(userId, complaintId, title, message, 
     });
 }
 
+async function sendThreeDayInactivityReminders() {
+    const pendingComplaints = await new Promise((resolve, reject) => {
+        db.all(
+            "SELECT c.complaintId, c.title, c.assignedOfficerId, COALESCE(c.updatedAt, c.createdAt) AS inactivitySince " +
+            "FROM complaints c INNER JOIN users o ON o.id = c.assignedOfficerId AND o.role = 'Officer' " +
+            "WHERE c.assignedOfficerId IS NOT NULL " +
+            "AND c.status IN ('Submitted', 'Pending', 'Received', 'Under Review', 'Assigned') " +
+            "AND datetime(COALESCE(c.updatedAt, c.createdAt)) <= datetime('now', '-3 days')",
+            [],
+            (err, rows) => err ? reject(err) : resolve(rows || [])
+        );
+    });
+
+    if (!pendingComplaints.length) return;
+
+    const admins = await new Promise((resolve, reject) => {
+        db.all("SELECT id FROM users WHERE role = 'Admin'", [],
+            (err, rows) => err ? reject(err) : resolve(rows || []));
+    });
+
+    for (const complaint of pendingComplaints) {
+        const recipients = [Number(complaint.assignedOfficerId), ...admins.map(admin => Number(admin.id))];
+        for (const recipientId of [...new Set(recipients)]) {
+            const alreadySent = await new Promise((resolve, reject) => {
+                db.get(
+                    "SELECT id FROM notifications WHERE userId = ? AND complaintId = ? AND type = 'auto_reminder' AND datetime(createdAt) >= datetime(?) LIMIT 1",
+                    [recipientId, complaint.complaintId, complaint.inactivitySince],
+                    (err, row) => err ? reject(err) : resolve(row || null)
+                );
+            });
+            if (alreadySent) continue;
+
+            const isOfficer = recipientId === Number(complaint.assignedOfficerId);
+            await createComplaintNotification(
+                recipientId,
+                complaint.complaintId,
+                isOfficer ? "Action required: complaint pending for 3 days" : "Alert: complaint pending without Officer action",
+                isOfficer
+                    ? "Complaint " + complaint.complaintId + " (" + complaint.title + ") has had no status/action update for 3 days. Please review and take action."
+                    : "Complaint " + complaint.complaintId + " (" + complaint.title + ") has had no status/action update for 3 days after assignment. Please follow up with the assigned Officer.",
+                "auto_reminder"
+            );
+        }
+    }
+}
+
 app.get("/api/notifications/:userId", async (req, res) => {
     try {
         const notifications = await new Promise((resolve, reject) => {
@@ -771,4 +817,10 @@ app.get("/api/admin/feedback", async (req,res) => { try { const actor=await admi
 app.post("/api/complaints/:complaintId/feedback", async (req,res) => { try { const userId=Number(req.body.userId),rating=Number(req.body.rating); if(!userId||!Number.isInteger(rating)||rating<1||rating>5) return res.status(400).json({success:false,message:"Choose a rating from 1 to 5."}); const result=await adminChange("UPDATE complaints SET feedbackRating=?,feedbackComment=? WHERE complaintId=? AND userId=? AND status='Resolved'",[rating,String(req.body.comment||"").slice(0,1000),req.params.complaintId,userId]); if(!result.changes) return res.status(400).json({success:false,message:"Only the owner of a resolved complaint can submit feedback."}); res.json({success:true,message:"Thank you for your feedback."}); } catch(e) { res.status(500).json({success:false,message:"Could not save feedback."}); } });
 
 const PORT = 5000;
-app.listen(PORT, () => console.log("Server running on port " + PORT));
+app.listen(PORT, () => {
+    console.log("Server running on port " + PORT);
+    sendThreeDayInactivityReminders().catch(error => console.error("3-day reminder check failed:", error));
+    setInterval(() => {
+        sendThreeDayInactivityReminders().catch(error => console.error("3-day reminder check failed:", error));
+    }, 60 * 60 * 1000);
+});
