@@ -474,6 +474,7 @@ function renderMyCases() {
                         <th>Location</th>
                         <th>Date</th>
                         <th>Status</th>
+                        <th>Reminder</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -484,10 +485,38 @@ function renderMyCases() {
                             <td>${item.location || [item.villageCity, item.district].filter(Boolean).join(", ") || "-"}</td>
                             <td>${formatDate(item.createdAt)}</td>
                             <td><span class="status-badge ${(item.status || "Submitted").toLowerCase().replace(/\\s+/g, "-")}">${item.status || "Submitted"}</span></td>
+                            <td>${item.status !== "Resolved" && item.assignedOfficerId
+                                ? '<button type="button" class="secondary-btn send-complaint-reminder" data-complaint-id="' + item.complaintId + '">🔔 Send Reminder</button>'
+                                : item.status === "Resolved" ? '<span>Completed</span>' : '<span>Awaiting Officer</span>'}</td>
                         </tr>`).join("")}
                 </tbody>
             </table>
         </div>`;
+
+    box.querySelectorAll(".send-complaint-reminder").forEach(button => {
+        button.addEventListener("click", async () => {
+            if (!userData || userData.role !== "Citizen") return;
+            const complaintId = button.dataset.complaintId;
+            if (!complaintId || !window.confirm("Send a reminder to the assigned Officer for " + complaintId + "?")) return;
+            button.disabled = true;
+            button.textContent = "Sending...";
+            try {
+                const response = await fetch(API_BASE_URL + "/api/complaints/" + encodeURIComponent(complaintId) + "/reminder", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ userId: userData.id })
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.message || "Could not send reminder.");
+                window.alert(data.message);
+                button.textContent = "Reminder Sent";
+            } catch (error) {
+                window.alert(error.message);
+                button.disabled = false;
+                button.textContent = "🔔 Send Reminder";
+            }
+        });
+    });
 }
 
 function renderRecentActivity() {
