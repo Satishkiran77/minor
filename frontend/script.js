@@ -2,8 +2,20 @@ const roles = document.querySelectorAll(".role");
 const loginButton = document.querySelector("#loginButton");
 const registerButton = document.querySelector("#registerNow");
 const guideButton = document.querySelector("#howToRegister");
+const registerSection = document.querySelector(".register-section");
 
 let selectedRole = "Citizen";
+
+function updateRegistrationVisibility() {
+    if (registerSection) {
+        const citizenSelected = selectedRole === "Citizen";
+        registerSection.style.display = citizenSelected ? "" : "none";
+        registerSection.setAttribute("aria-hidden", String(!citizenSelected));
+    }
+}
+
+// Public registration is available only to Citizens.
+updateRegistrationVisibility();
 
 
 /* ================= ROLE SELECTION ================= */
@@ -30,6 +42,8 @@ roles.forEach(function (role) {
         else {
             selectedRole = "Admin";
         }
+
+        updateRegistrationVisibility();
 
     });
 
