@@ -1059,6 +1059,18 @@ if (markAllNotificationsReadBtn) {
 const notificationsNav = document.querySelector('[data-section="notifications"]');
 if (notificationsNav) notificationsNav.addEventListener("click", loadNotifications);
 
+// Keep the officer/admin bell and notification list current while the dashboard stays open.
+if (userData && ["Officer", "Admin"].includes(userData.role)) {
+    window.setInterval(() => {
+        if (!document.hidden) loadNotifications();
+    }, 30000);
+}
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && userData && ["Officer", "Admin"].includes(userData.role)) {
+        loadNotifications();
+    }
+});
+
 /* ================= ADMIN / OFFICER COMPLAINT MANAGEMENT ================= */
 
 const adminComplaintsNav = document.getElementById("adminComplaintsNav");
