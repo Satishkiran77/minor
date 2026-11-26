@@ -331,6 +331,20 @@ app.post("/api/complaints", async (req, res) => {
             "success"
         );
 
+        // Notify every Admin when a citizen submits a new complaint.
+        const adminUsers = await new Promise((resolve, reject) => {
+            db.all("SELECT id FROM users WHERE role = 'Admin'", [], (err, rows) => err ? reject(err) : resolve(rows || []));
+        });
+        for (const adminUser of adminUsers) {
+            await createComplaintNotification(
+                adminUser.id,
+                complaintId,
+                "New citizen complaint received",
+                "A new complaint " + complaintId + " (" + title + ") was submitted and is awaiting review/assignment.",
+                "info"
+            );
+        }
+
         res.status(201).json({
             success: true,
             message: "Complaint submitted successfully.",
@@ -569,10 +583,12 @@ app.patch("/api/admin/complaints/:complaintId/status", async (req, res) => {
             return res.status(404).json({ success: false, message: "Complaint not found." });
         }
 
-        const complaintOwner = await new Promise((resolve, reject) => {
-            db.get("SELECT userId FROM complaints WHERE complaintId = ?", [req.params.complaintId],
-                (err, row) => err ? reject(err) : resolve(row?.userId || null));
+        const complaintDetails = await new Promise((resolve, reject) => {
+            db.get("SELECT userId, assignedOfficerId FROM complaints WHERE complaintId = ?", [req.params.complaintId],
+                (err, row) => err ? reject(err) : resolve(row || null));
         });
+        const complaintOwner = complaintDetails?.userId || null;
+        const assignedOfficerId = complaintDetails?.assignedOfficerId || null;
 
         const statusMessages = {
             "Submitted": "Your complaint has been submitted.",
@@ -593,7 +609,19 @@ app.patch("/api/admin/complaints/:complaintId/status", async (req, res) => {
             );
         }
 
-        res.json({ success: true, message: "Complaint status updated.", status });
+        // Keep the assigned Officer informed when an Admin changes complaint status.
+        const actingUserId = Number(req.body.userId);
+        if (assignedOfficerId && Number(assignedOfficerId) !== actingUserId) {
+            await createComplaintNotification(
+                assignedOfficerId,
+                req.params.complaintId,
+                "Assigned complaint status updated",
+                req.params.complaintId + " status changed to " + status + ". Please review the latest update.",
+                status === "Resolved" ? "success" : "info"
+            );
+        }
+
+        res.json({ success: true, message: "Complaint status updated and relevant users notified.", status });
     } catch (error) {
         console.error("Update complaint status error:", error);
         res.status(500).json({ success: false, message: "Could not update complaint status." });
