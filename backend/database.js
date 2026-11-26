@@ -41,7 +41,9 @@ const complaintColumns = [
     ["dueAt", "DATETIME"],
     ["feedbackRating", "INTEGER"],
     ["feedbackComment", "TEXT"],
-    ["resolvedAt", "DATETIME"]
+    ["resolvedAt", "DATETIME"],
+    ["assignedAt", "DATETIME"],
+    ["lastOfficerActionAt", "DATETIME"]
 ];
 
 complaintColumns.forEach(([column, type]) => {
