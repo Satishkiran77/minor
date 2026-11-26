@@ -371,6 +371,61 @@ app.get("/api/complaints/user/:userId", async (req, res) => {
     }
 });
 
+app.post("/api/complaints/:complaintId/reminder", async (req, res) => {
+    try {
+        const citizenId = Number(req.body.userId);
+        if (!citizenId) return res.status(400).json({ success: false, message: "Please login again to send a reminder." });
+
+        const citizen = await new Promise((resolve, reject) => {
+            db.get("SELECT id, role FROM users WHERE id = ?", [citizenId],
+                (err, row) => err ? reject(err) : resolve(row || null));
+        });
+        if (!citizen || citizen.role !== "Citizen") {
+            return res.status(403).json({ success: false, message: "Only the complaint owner can send a reminder." });
+        }
+
+        const complaint = await new Promise((resolve, reject) => {
+            db.get("SELECT complaintId, title, userId, assignedOfficerId, status FROM complaints WHERE complaintId = ?",
+                [req.params.complaintId], (err, row) => err ? reject(err) : resolve(row || null));
+        });
+        if (!complaint || Number(complaint.userId) !== citizenId) {
+            return res.status(404).json({ success: false, message: "Your complaint could not be found." });
+        }
+        if (complaint.status === "Resolved") {
+            return res.status(400).json({ success: false, message: "This complaint is already resolved. A reminder is not needed." });
+        }
+        if (!complaint.assignedOfficerId) {
+            return res.status(409).json({ success: false, message: "No Officer has been assigned yet. Please contact the help desk or wait for assignment." });
+        }
+
+        const officer = await new Promise((resolve, reject) => {
+            db.get("SELECT id FROM users WHERE id = ? AND role = 'Officer'", [complaint.assignedOfficerId],
+                (err, row) => err ? reject(err) : resolve(row || null));
+        });
+        if (!officer) return res.status(409).json({ success: false, message: "The assigned Officer account is unavailable. Please contact the administrator." });
+
+        const recentReminder = await new Promise((resolve, reject) => {
+            db.get("SELECT id FROM notifications WHERE userId = ? AND complaintId = ? AND type = 'reminder' AND createdAt >= datetime('now', '-1 day') LIMIT 1",
+                [officer.id, complaint.complaintId], (err, row) => err ? reject(err) : resolve(row || null));
+        });
+        if (recentReminder) {
+            return res.status(429).json({ success: false, message: "A reminder was already sent for this complaint in the last 24 hours. Please try again later." });
+        }
+
+        await createComplaintNotification(
+            officer.id,
+            complaint.complaintId,
+            "Citizen reminder: pending complaint",
+            "The citizen has sent a reminder for complaint " + complaint.complaintId + " (" + complaint.title + "). Please review the complaint and provide an update.",
+            "reminder"
+        );
+        res.json({ success: true, message: "Reminder sent to the assigned Officer. Your original complaint remains unchanged." });
+    } catch (error) {
+        console.error("Citizen complaint reminder error:", error);
+        res.status(500).json({ success: false, message: "Could not send the reminder. Please try again." });
+    }
+});
+
 app.get("/api/complaints/track/:complaintId", async (req, res) => {
     try {
         const complaint = await new Promise((resolve, reject) => {
