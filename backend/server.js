@@ -359,7 +359,7 @@ app.post("/api/complaints", async (req, res) => {
 app.get("/api/complaints/user/:userId", async (req, res) => {
     try {
         const complaints = await new Promise((resolve, reject) => {
-            db.all("SELECT id, complaintId, category, subCategory, title, description, state, district, villageCity, nearestTown, pincode, streetArea, latitude, longitude, location, status, priority, createdAt, updatedAt FROM complaints WHERE userId = ? ORDER BY createdAt DESC",
+            db.all("SELECT id, complaintId, category, subCategory, title, description, state, district, villageCity, nearestTown, pincode, streetArea, latitude, longitude, location, status, priority, assignedOfficerId, createdAt, updatedAt FROM complaints WHERE userId = ? ORDER BY createdAt DESC",
                 [req.params.userId],
                 (err, rows) => err ? reject(err) : resolve(rows));
         });
